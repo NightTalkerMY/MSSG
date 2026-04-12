@@ -1,0 +1,23 @@
+# Specifically requested exclusions
+venv/
+data/
+log/
+exps/
+graphs/
+
+# Ignore everything inside predata, EXCEPT pretrain_model
+predata/*
+!predata/pretrain_model/
+!predata/pretrain_model
+
+# Standard Python exclusions
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Jupyter Notebook exclusions (based on your .ipynb file)
+.ipynb_checkpoints/
+
+# OS generated files (Optional but recommended)
+.DS_Store
+Thumbs.db
