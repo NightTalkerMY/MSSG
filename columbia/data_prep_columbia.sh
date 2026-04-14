@@ -1,162 +1,180 @@
 #!/usr/bin/env bash
 # Modification for Columbia Dataset
-# Automatically move up one folder to the root of the project
-# so that ./local/ and ./predata/ can be found correctly!
-cd ..
 
 stage=$1
-
-# Configure the path to your new Columbia dataset directory
-ColDataPath="./data/Columbia"
-CSV_DIR="./predata/csv_split/columbia"
-
-# We use nj=1 because we only have a handful of CSV files (bell, boll, etc.) 
-# compared to the thousands in AVA. Splitting into 64 jobs will crash the script.
+AVADataPath="./data/Columbia"
 nj=1 
 
-mkdir -p ./predata
-mkdir -p $CSV_DIR
-
 # -------------------------------------------------------------------------
-# STAGE 0: Directory Preparation & Symlinking (CRITICAL)
-# The original Python scripts look for frames inside $ColDataPath/clips_videos/
-# We need to make sure the frames extracted by prep_columbia.py are here.
+# STAGE 0: The AVA Illusion Setup
 # -------------------------------------------------------------------------
 if [ $stage -eq 0 ]; then
-    echo "Please ensure your col_split.csv is placed inside $CSV_DIR"
-    echo "Please ensure your raw frames are in $ColDataPath/clips_videos/"
-    # Example: If your video is "col", frames should be in $ColDataPath/clips_videos/col/
+    echo "Setting up the Fake AVA structure with Headers..."
+    
+    # 1. Inject the EXACT headers prepare_background.py expects
+    mkdir -p $AVADataPath/csv
+    HEADER="video_id,frame_timestamp,entity_box_x1,entity_box_y1,entity_box_x2,entity_box_y2,instance_id,entity_id,label_id"
+    
+    echo $HEADER > $AVADataPath/csv/train_orig.csv
+    cat ./predata/csv_split/columbia/col_split.csv >> $AVADataPath/csv/train_orig.csv
+    
+    echo $HEADER > $AVADataPath/csv/val_orig.csv
+    cat ./predata/csv_split/columbia/col_split.csv >> $AVADataPath/csv/val_orig.csv
+    
+    # 2. Keep the split reader CSV headerless
+    mkdir -p ./predata/csv_split/train
+    cp ./predata/csv_split/columbia/col_split.csv ./predata/csv_split/train/col_split.csv
+    
+    # 3. Trick the image loader
+    if [ -d "$AVADataPath/clips_videos/col" ]; then
+        mkdir -p $AVADataPath/clips_videos/train
+        mv $AVADataPath/clips_videos/col $AVADataPath/clips_videos/train/col
+    fi
+
+    # 4. Trick the Background Extractor (It needs the raw video file!)
+    mkdir -p $AVADataPath/orig_videos/trainval
+    cp columbia/colDataPath/col.mp4 $AVADataPath/orig_videos/trainval/col.mp4
+
+    echo "AVA Illusion Complete!"
 fi
 
 # -------------------------------------------------------------------------
-# STAGE 1 & 2: Extract and Resize F_bg (Eq 8)
+# STAGE 2: Extract F_bg
 # -------------------------------------------------------------------------
 if [ $stage -eq 2 ]; then 
     echo "Extracting Background..."
-    python ./local/prepare_background.py --AVADataPath=$ColDataPath --out_path=$ColDataPath/clips_videos_background
+    python ./local/prepare_background.py --AVADataPath=$AVADataPath --out_path=$AVADataPath/clips_videos_background
     
-    mkdir -p ./predata/background_process/columbia_list
-    python ./local/get_leaf_dir_list.py --AVADataPath=$ColDataPath/clips_videos --out_file=./predata/background_process/columbia_list
-
+    # FIXED: Only create the parent directory, not the file!
+    mkdir -p ./predata/background_process
+    name="train"
+    
+    python ./local/get_leaf_dir_list.py --AVADataPath=$AVADataPath/clips_videos/$name --out_file=./predata/background_process/${name}_list
+    
     background_H=224
     mkdir -p ./predata/background_process/split
-    
-    file_split_scp="./predata/background_process/split/columbia_file_list.1"
-    ./local/utils/split_scp.pl ./predata/background_process/columbia_list $file_split_scp
+    file_split_scp="./predata/background_process/split/${name}_file_list.1"
+    ./local/utils/split_scp.pl ./predata/background_process/${name}_list $file_split_scp
     
     mkdir -p ./log/resize_background
-    mkdir -p $ColDataPath/clips_videos_background_resize_${background_H}
+    mkdir -p $AVADataPath/clips_videos_background_resize_${background_H}
     
     ./local/utils/run.pl JOB=1:$nj \
     ./log/resize_background/resize_background.JOB.log \
-        python ./local/resize_background.py --input_file_list=./predata/background_process/split/columbia_file_list.JOB \
-                                            --AVADataPath $ColDataPath \
-                                            --out_path=$ColDataPath/clips_videos_background_resize_${background_H} \
+        python ./local/resize_background.py --input_file_list=./predata/background_process/split/${name}_file_list.JOB \
+                                            --AVADataPath $AVADataPath \
+                                            --out_path=$AVADataPath/clips_videos_background_resize_${background_H} \
                                             --size=$background_H
 fi
 
 # -------------------------------------------------------------------------
-# STAGE 3: Extract F_body (Eq 6)
+# STAGE 4: Extract F_body
 # -------------------------------------------------------------------------
 if [ $stage -eq 4 ]; then
     echo "Extracting Body..."
+    name="train"
     mkdir -p ./predata/facebody_process/split
     
-    find $CSV_DIR -type f > ./predata/facebody_process/columbia_list
-    file_split_scp="./predata/facebody_process/split/columbia_file_list.1"
-    ./local/utils/split_scp.pl ./predata/facebody_process/columbia_list $file_split_scp
+    find ./predata/csv_split/$name -type f > ./predata/facebody_process/${name}_list
+    file_split_scp="./predata/facebody_process/split/${name}_file_list.1"
+    ./local/utils/split_scp.pl ./predata/facebody_process/${name}_list $file_split_scp
     
     mkdir -p ./log/facebody_process
-    mkdir -p $ColDataPath/clips_videos_face_body
+    mkdir -p $AVADataPath/clips_videos_face_body
     
     ./local/utils/run.pl JOB=1:$nj \
     ./log/facebody_process/facebody_process.JOB.log \
-        python ./local/prepare_facebody.py --input_file_list=./predata/facebody_process/split/columbia_file_list.JOB \
-                                           --AVADataPath $ColDataPath \
-                                           --out_path=$ColDataPath/clips_videos_face_body
+        python ./local/prepare_facebody.py --input_file_list=./predata/facebody_process/split/${name}_file_list.JOB \
+                                           --AVADataPath $AVADataPath \
+                                           --out_path=$AVADataPath/clips_videos_face_body
 fi
 
 # -------------------------------------------------------------------------
-# STAGE 4: Extract F_head (Eq 3)
+# STAGE 5: Extract F_head
 # -------------------------------------------------------------------------
 if [ $stage -eq 5 ]; then
     echo "Extracting Head..."
+    name="train"
     mkdir -p ./predata/face_process/split
     
-    find $CSV_DIR -type f > ./predata/face_process/columbia_list
-    file_split_scp="./predata/face_process/split/columbia_file_list.1"
-    ./local/utils/split_scp.pl ./predata/face_process/columbia_list $file_split_scp
+    find ./predata/csv_split/$name -type f > ./predata/face_process/${name}_list
+    file_split_scp="./predata/face_process/split/${name}_file_list.1"
+    ./local/utils/split_scp.pl ./predata/face_process/${name}_list $file_split_scp
     
     mkdir -p ./log/face_process
-    mkdir -p $ColDataPath/clips_videos_face_large_region
+    mkdir -p $AVADataPath/clips_videos_face_large_region
     
     ./local/utils/run.pl JOB=1:$nj \
     ./log/face_process/face_process.JOB.log \
-        python ./local/prepare_largeface.py --input_file_list=./predata/face_process/split/columbia_file_list.JOB \
-                                            --AVADataPath $ColDataPath \
-                                            --out_path=$ColDataPath/clips_videos_face_large_region
+        python ./local/prepare_largeface.py --input_file_list=./predata/face_process/split/${name}_file_list.JOB \
+                                            --AVADataPath $AVADataPath \
+                                            --out_path=$AVADataPath/clips_videos_face_large_region
 fi
 
 # -------------------------------------------------------------------------
-# STAGE 5: Extract F_smallface (Eq 4)
+# STAGE 6: Extract F_smallface
 # -------------------------------------------------------------------------
 if [ $stage -eq 6 ]; then
     echo "Extracting Small Face..."
+    name="train"
     mkdir -p ./predata/face_process_small/split
     
-    find $CSV_DIR -type f > ./predata/face_process_small/columbia_list
-    file_split_scp="./predata/face_process_small/split/columbia_file_list.1"
-    ./local/utils/split_scp.pl ./predata/face_process_small/columbia_list $file_split_scp
+    find ./predata/csv_split/$name -type f > ./predata/face_process_small/${name}_list
+    file_split_scp="./predata/face_process_small/split/${name}_file_list.1"
+    ./local/utils/split_scp.pl ./predata/face_process_small/${name}_list $file_split_scp
     
     mkdir -p ./log/face_process_small
-    mkdir -p $ColDataPath/clips_videos_face_small_region
+    mkdir -p $AVADataPath/clips_videos_face_small_region
     
     ./local/utils/run.pl JOB=1:$nj \
     ./log/face_process_small/face_process_small.JOB.log \
-        python ./local/prepare_smallface.py --input_file_list=./predata/face_process_small/split/columbia_file_list.JOB \
-                                            --AVADataPath $ColDataPath \
-                                            --out_path=$ColDataPath/clips_videos_face_small_region
+        python ./local/prepare_smallface.py --input_file_list=./predata/face_process_small/split/${name}_file_list.JOB \
+                                            --AVADataPath $AVADataPath \
+                                            --out_path=$AVADataPath/clips_videos_face_small_region
 fi
 
 # -------------------------------------------------------------------------
-# STAGE 6: Extract F_mouse (Eq 5)
+# STAGE 7: Extract F_mouse (Lower Face)
 # -------------------------------------------------------------------------
 if [ $stage -eq 7 ]; then
-    echo "Extracting Mouse (Lower Face)..."
-    python ./local/get_leaf_dir_list.py --AVADataPath=$ColDataPath/clips_videos --out_file=./predata/face_process/columbia_list_dirs
+    echo "Extracting Lower Face..."
+    name="train"
+    mkdir -p ./predata/face_process
+    python ./local/get_leaf_dir_list.py --AVADataPath=$AVADataPath/clips_videos/$name --out_file=./predata/face_process/${name}_list
     
     mkdir -p ./predata/face_process/split
-    file_split_scp="./predata/face_process/split/columbia_file_list.1"
-    ./local/utils/split_scp.pl ./predata/face_process/columbia_list_dirs $file_split_scp
+    file_split_scp="./predata/face_process/split/${name}_file_list.1"
+    ./local/utils/split_scp.pl ./predata/face_process/${name}_list $file_split_scp
     
     mkdir -p ./log/extract_mouse
-    mkdir -p $ColDataPath/clips_videos_down_face
+    mkdir -p $AVADataPath/clips_videos_down_face
     
     ./local/utils/run.pl JOB=1:$nj \
     ./log/extract_mouse/extract_mouse.JOB.log \
-        python ./local/prepare_halfface.py --input_file_list=./predata/face_process/split/columbia_file_list.JOB \
-                                           --AVADataPath $ColDataPath \
-                                           --down_out_path=$ColDataPath/clips_videos_down_face \
-                                           --csv_split_root=$CSV_DIR
+        python ./local/prepare_halfface.py --input_file_list=./predata/face_process/split/${name}_file_list.JOB \
+                                           --AVADataPath $AVADataPath \
+                                           --down_out_path=$AVADataPath/clips_videos_down_face \
+                                           --csv_split_root=./predata/csv_split/$name
 fi
 
 # -------------------------------------------------------------------------
-# STAGE 7: Extract F_largebody (Eq 7)
+# STAGE 8: Extract F_largebody
 # -------------------------------------------------------------------------
 if [ $stage -eq 8 ]; then
     echo "Extracting Large Body..."
+    name="train"
     mkdir -p ./predata/facebody_large_process/split
     
-    find $CSV_DIR -type f > ./predata/facebody_large_process/columbia_list
-    file_split_scp="./predata/facebody_large_process/split/columbia_file_list.1"
-    ./local/utils/split_scp.pl ./predata/facebody_large_process/columbia_list $file_split_scp
+    find ./predata/csv_split/$name -type f > ./predata/facebody_large_process/${name}_list
+    file_split_scp="./predata/facebody_large_process/split/${name}_file_list.1"
+    ./local/utils/split_scp.pl ./predata/facebody_large_process/${name}_list $file_split_scp
     
     mkdir -p ./log/facebody_large_process
-    mkdir -p $ColDataPath/clips_videos_face_body_large
+    mkdir -p $AVADataPath/clips_videos_face_body_large
     
     ./local/utils/run.pl JOB=1:$nj \
     ./log/facebody_large_process/facebody_large_process.JOB.log \
-        python ./local/prepare_facebody_large.py --input_file_list=./predata/facebody_large_process/split/columbia_file_list.JOB \
-                                                 --AVADataPath $ColDataPath \
-                                                 --out_path=$ColDataPath/clips_videos_face_body_large
+        python ./local/prepare_facebody_large.py --input_file_list=./predata/facebody_large_process/split/${name}_file_list.JOB \
+                                                 --AVADataPath $AVADataPath \
+                                                 --out_path=$AVADataPath/clips_videos_face_body_large
 fi
