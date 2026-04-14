@@ -3,6 +3,7 @@ venv/
 data/
 log/
 graphs/
+colDataPath/
 
 # Ignore everything inside predata, EXCEPT pretrain_model
 predata/*
