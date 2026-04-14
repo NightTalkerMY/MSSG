@@ -2,7 +2,6 @@
 venv/
 data/
 log/
-exps/
 graphs/
 
 # Ignore everything inside predata, EXCEPT pretrain_model
