@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#liguanjun@2024.06
+#modification by william
 stage=$1
 
 # Configure the path to your local AVA dataset directory

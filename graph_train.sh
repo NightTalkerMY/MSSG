@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#liguanjun@2024.06
+#modification by william
 
 GPU=0
 numv=2000
