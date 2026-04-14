@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # Modification for Columbia Dataset
+# Automatically move up one folder to the root of the project
+# so that ./local/ and ./predata/ can be found correctly!
+cd ..
 
 stage=$1
 
