@@ -38,10 +38,10 @@ def export_gt_to_ava_csv(video_name, label_folder, pyframes_path, csv_out_path):
                 label = int(data[4])
                 
                 # Normalize square bounding box
-                x1 = max(0.0, TLx / fw)
-                y1 = max(0.0, TLy / fh)
-                x2 = min(1.0, (TLx + width) / fw)
-                y2 = min(1.0, (TLy + width) / fh)
+                x1 = max(0.0, TLx / 640.0)
+                y1 = max(0.0, TLy / 360.0)
+                x2 = min(1.0, (TLx + width) / 640.0)
+                y2 = min(1.0, (TLy + width) / 360.0)
                 
                 timestamp = f"{frame_idx / 25.0:.3f}"
                 
