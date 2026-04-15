@@ -46,7 +46,8 @@ def export_gt_to_ava_csv(video_name, label_folder, pyframes_path, csv_out_path):
                 timestamp = f"{frame_idx / 25.0:.3f}"
                 
                 # Format: [video_name, timestamp, x1, y1, x2, y2, dummy, identity, label]
-                row = [video_name, timestamp, f"{x1:.3f}", f"{y1:.3f}", f"{x2:.3f}", f"{y2:.3f}", "0", identity, str(label)]
+                # row = [video_name, timestamp, f"{x1:.3f}", f"{y1:.3f}", f"{x2:.3f}", f"{y2:.3f}", "0", identity, str(label)]
+                row = [video_name, timestamp, f"{x1:.3f}", f"{y1:.3f}", f"{x2:.3f}", f"{y2:.3f}", "0", identity, str(label), identity]
                 writer.writerow(row)
                 
     print(f"[SUCCESS] CSV Exported to: {csv_out_path}")

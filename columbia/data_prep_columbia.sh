@@ -13,7 +13,8 @@ if [ $stage -eq 0 ]; then
     echo "Setting up the Fake AVA structure with Headers..."
     
     mkdir -p $AVADataPath/csv
-    HEADER="video_id,frame_timestamp,entity_box_x1,entity_box_y1,entity_box_x2,entity_box_y2,instance_id,entity_id,label_id"
+    # HEADER="video_id,frame_timestamp,entity_box_x1,entity_box_y1,entity_box_x2,entity_box_y2,instance_id,entity_id,label_id"
+    HEADER="video_id,frame_timestamp,entity_box_x1,entity_box_y1,entity_box_x2,entity_box_y2,label,entity_id,label_id,instance_id"
     
     echo $HEADER > $AVADataPath/csv/train_orig.csv
     cat $ColPreData/csv_split/columbia/col_split.csv >> $AVADataPath/csv/train_orig.csv
