@@ -60,7 +60,8 @@ def main():
     # These point to the exact folders the bash script expects
     parser.add_argument('--outFramesDir', type=str, default="./data/Columbia/clips_videos")
     parser.add_argument('--outAudioDir', type=str, default="./data/Columbia/clips_audios")
-    parser.add_argument('--outCsvDir', type=str, default="./predata/csv_split/columbia")
+    parser.add_argument('--outCsvDir', type=str, default="./data/Columbia/predata/csv_split/columbia")
+    # parser.add_argument('--outCsvDir', type=str, default="./predata/csv_split/columbia")
     args = parser.parse_args()
 
     # Target directories
