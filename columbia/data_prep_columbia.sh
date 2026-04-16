@@ -138,7 +138,9 @@ if [ $stage -eq 7 ]; then
     echo "Extracting Lower Face..."
     name="train"
     mkdir -p $ColPreData/face_process
-    python ./local/get_leaf_dir_list.py --AVADataPath=$AVADataPath/clips_videos/$name --out_file=$ColPreData/face_process/${name}_list
+    
+    # FIX: Point to clips_videos_faces!
+    python ./local/get_leaf_dir_list.py --AVADataPath=$AVADataPath/clips_videos_faces/$name --out_file=$ColPreData/face_process/${name}_list
     
     mkdir -p $ColPreData/face_process/split
     file_split_scp="$ColPreData/face_process/split/${name}_file_list.1"
@@ -147,6 +149,7 @@ if [ $stage -eq 7 ]; then
     mkdir -p ./log/extract_mouse
     mkdir -p $AVADataPath/clips_videos_down_face
     
+    nj=1
     ./local/utils/run.pl JOB=1:$nj \
     ./log/extract_mouse/extract_mouse.JOB.log \
         python ./local/prepare_halfface.py --input_file_list=$ColPreData/face_process/split/${name}_file_list.JOB \

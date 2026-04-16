@@ -7,11 +7,20 @@ AVADataPath="./data/Columbia"
 ColPreData="./data/Columbia/predata"
 GPU=0
 
+# generate baseline face crops (equivalent to tools.py extract_video_clips)
+if [ $stage -eq 1 ]; then
+    echo "Generating Baseline Face Crops for Columbia..."
+    python ./columbia/prep_baseline_faces.py
+fi
+
 # initialize node e_face
 if [ $stage -eq 2 ]; then
     echo "Extracting Face Features..."
-    python ./local/get_clip_info.py --dataPathAVA $AVADataPath --out_path $ColPreData/clip_info
-    CUDA_VISIBLE_DEVICES=${GPU} python ./local/extract_face_feats_average.py --dataPathAVA $AVADataPath \
+    
+    mkdir -p ./data/Columbia/predata/clip_info
+        
+    python ./columbia/local/get_clip_info.py --dataPathAVA $AVADataPath --out_path $ColPreData/clip_info
+    CUDA_VISIBLE_DEVICES=${GPU} python ./columbia/local/extract_face_feats_average.py --dataPathAVA $AVADataPath \
                                    --clip_info_path $ColPreData/clip_info \
                                    --face_model_path ./predata/pretrain_model/face_model \
                                    --out_path $ColPreData/face_feats_info
@@ -20,7 +29,7 @@ fi
 # initialize node e_bg
 if [ $stage -eq 3 ]; then
     echo "Extracting Background Features..."
-    CUDA_VISIBLE_DEVICES=${GPU} python ./local/extract_background_feats.py --dataPathAVA $AVADataPath \
+    CUDA_VISIBLE_DEVICES=${GPU} python ./columbia/local/extract_background_feats.py --dataPathAVA $AVADataPath \
                                    --clip_info_path $ColPreData/clip_info \
                                    --background_model ./predata/pretrain_model/background_model.model \
                                    --out_path $ColPreData/background_feats_info \
@@ -30,7 +39,7 @@ fi
 # initialize node e_smallface
 if [ $stage -eq 4 ]; then
     echo "Extracting Small Face Features..."
-    CUDA_VISIBLE_DEVICES=${GPU} python ./local/extract_face_small_feats_average.py --dataPathAVA $AVADataPath \
+    CUDA_VISIBLE_DEVICES=${GPU} python ./columbia/local/extract_face_small_feats_average.py --dataPathAVA $AVADataPath \
                             --clip_info_path $ColPreData/clip_info \
                             --face_model_path ./predata/pretrain_model/face_small_model \
                             --out_path $ColPreData/face_small_feats_info
@@ -39,7 +48,7 @@ fi
 # initialize node e_body
 if [ $stage -eq 5 ]; then 
     echo "Extracting Body Features..."
-    CUDA_VISIBLE_DEVICES=${GPU} python ./local/extract_face_body_feats_average.py --dataPathAVA $AVADataPath \
+    CUDA_VISIBLE_DEVICES=${GPU} python ./columbia/local/extract_face_body_feats_average.py --dataPathAVA $AVADataPath \
                         --clip_info_path $ColPreData/clip_info \
                         --face_model_path ./predata/pretrain_model/body_model \
                         --out_path $ColPreData/face.body_feats_info
@@ -48,7 +57,7 @@ fi
 # initialize node e_head
 if [ $stage -eq 6 ]; then
     echo "Extracting Large Face (Head) Features..."
-    CUDA_VISIBLE_DEVICES=${GPU} python ./local/extract_face_large_feats_average.py --dataPathAVA $AVADataPath \
+    CUDA_VISIBLE_DEVICES=${GPU} python ./columbia/local/extract_face_large_feats_average.py --dataPathAVA $AVADataPath \
                                 --clip_info_path $ColPreData/clip_info \
                                 --face_model_path ./predata/pretrain_model/face_large_model \
                                 --out_path $ColPreData/face_large_feats_info
@@ -57,7 +66,7 @@ fi
 # initialize node e_mouse (lower face)
 if [ $stage -eq 7 ]; then
     echo "Extracting Lower Face Features..."
-    CUDA_VISIBLE_DEVICES=${GPU} python ./local/extract_face_down_feats_average.py --dataPathAVA $AVADataPath \
+    CUDA_VISIBLE_DEVICES=${GPU} python ./columbia/local/extract_face_down_feats_average.py --dataPathAVA $AVADataPath \
                             --clip_info_path $ColPreData/clip_info \
                             --face_model_path ./predata/pretrain_model/face_down_model \
                             --out_path $ColPreData/face_down_feats_info
@@ -66,7 +75,7 @@ fi
 # initialize node e_largebody
 if [ $stage -eq 8 ]; then
     echo "Extracting Large Body Features..."
-    CUDA_VISIBLE_DEVICES=${GPU} python ./local/extract_face_body_large_feats_average.py --dataPathAVA $AVADataPath \
+    CUDA_VISIBLE_DEVICES=${GPU} python ./columbia/local/extract_face_body_large_feats_average.py --dataPathAVA $AVADataPath \
                             --clip_info_path $ColPreData/clip_info \
                             --face_model_path ./predata/pretrain_model/body_large_model \
                             --out_path $ColPreData/face_body_large_feats_info
@@ -76,7 +85,7 @@ fi
 if [ $stage -eq 9 ]; then
     echo "Constructing the Columbia Graph..."
     mkdir -p $ColPreData/video_size_info
-    python ./local/get_size_of_each_video.py --AVADataPath $AVADataPath --out_path=$ColPreData/video_size_info
+    python ./columbia/local/get_size_of_each_video.py --AVADataPath $AVADataPath --out_path=$ColPreData/video_size_info
     
     nj=1
     numv=2000
@@ -100,12 +109,12 @@ if [ $stage -eq 9 ]; then
     find $csv_split_path -type f > ./log/generate_graph_col/${set}_file_list
     
     file_split_scp="./log/generate_graph_col/${set}_file_list.1"
-    ./local/utils/split_scp.pl ./log/generate_graph_col/${set}_file_list $file_split_scp
+    ./columbia/local/utils/split_scp.pl ./log/generate_graph_col/${set}_file_list $file_split_scp
     
     # begin processing
-    ./local/utils/run.pl JOB=1:$nj \
+    ./columbia/local/utils/run.pl JOB=1:$nj \
                     ./log/generate_graph_col/${set}/generate_graph.JOB.log \
-                    python ./local/generate_graph.py --input_file_list=./log/generate_graph_col/${set}_file_list.JOB \
+                    python ./columbia/local/generate_graph.py --input_file_list=./log/generate_graph_col/${set}_file_list.JOB \
                                                     --face_feats_info_path=$face_feats_info_path \
                                                     --background_feats_info_path=$background_feats_info_path \
                                                     --face_body_feats_info_path=$face_body_feats_info_path \
