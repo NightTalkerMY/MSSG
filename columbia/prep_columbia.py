@@ -8,7 +8,7 @@ def export_gt_to_ava_csv(video_name, label_folder, pyframes_path, csv_out_path):
         print(f"[ERROR] Could not find ground truth labels at {txtPath}")
         return
 
-    # Get frame dimensions to normalize bounding boxes [0, 1]
+    # Get ACTUAL frame dimensions to normalize bounding boxes [0, 1]
     flist = glob.glob(os.path.join(pyframes_path, '*.jpg'))
     flist.sort()
     if not flist:
@@ -17,6 +17,7 @@ def export_gt_to_ava_csv(video_name, label_folder, pyframes_path, csv_out_path):
         
     firstImage = cv2.imread(flist[0])
     fh, fw = firstImage.shape[0], firstImage.shape[1]
+    print(f"Detected actual video resolution: {fw}x{fh}")
     
     with open(csv_out_path, mode='w', newline='') as f:
         writer = csv.writer(f)
@@ -32,21 +33,20 @@ def export_gt_to_ava_csv(video_name, label_folder, pyframes_path, csv_out_path):
                 # Convert 29.97 FPS label timing to 25 FPS video timing
                 frame_idx = int(int(data[0]) / 29.97 * 25)
                 
-                TLx = int(data[1])
-                TLy = int(data[2])
-                width = int(data[3])
+                TLx = float(data[1])
+                TLy = float(data[2])
+                width = float(data[3])
                 label = int(data[4])
                 
-                # Normalize square bounding box
-                x1 = max(0.0, TLx / 640.0)
-                y1 = max(0.0, TLy / 360.0)
-                x2 = min(1.0, (TLx + width) / 640.0)
-                y2 = min(1.0, (TLy + width) / 360.0)
+                # FIXED: Dynamically normalize based on actual frame width/height!
+                x1 = max(0.0, TLx / fw)
+                y1 = max(0.0, TLy / fh)
+                x2 = min(1.0, (TLx + width) / fw)
+                y2 = min(1.0, (TLy + width) / fh)
                 
                 timestamp = f"{frame_idx / 25.0:.3f}"
                 
-                # Format: [video_name, timestamp, x1, y1, x2, y2, dummy, identity, label]
-                # row = [video_name, timestamp, f"{x1:.3f}", f"{y1:.3f}", f"{x2:.3f}", f"{y2:.3f}", "0", identity, str(label)]
+                # Format: [video_name, timestamp, x1, y1, x2, y2, dummy, identity, label, instance_id]
                 row = [video_name, timestamp, f"{x1:.3f}", f"{y1:.3f}", f"{x2:.3f}", f"{y2:.3f}", "0", identity, str(label), identity]
                 writer.writerow(row)
                 
@@ -57,11 +57,9 @@ def main():
     parser.add_argument('--videoName', type=str, default="col")
     parser.add_argument('--videoPath', type=str, required=True, help="Path to raw mp4")
     parser.add_argument('--labelPath', type=str, required=True, help="Path to fusion txt folder")
-    # These point to the exact folders the bash script expects
     parser.add_argument('--outFramesDir', type=str, default="./data/Columbia/clips_videos")
     parser.add_argument('--outAudioDir', type=str, default="./data/Columbia/clips_audios")
     parser.add_argument('--outCsvDir', type=str, default="./data/Columbia/predata/csv_split/columbia")
-    # parser.add_argument('--outCsvDir', type=str, default="./predata/csv_split/columbia")
     args = parser.parse_args()
 
     # Target directories
@@ -78,7 +76,7 @@ def main():
     else:
         print("Frames already extracted. Skipping...")
 
-    # 2. Extract Audio (For node initialization later)
+    # 2. Extract Audio
     target_audio_file = os.path.join(args.outAudioDir, f"{args.videoName}.wav")
     if not os.path.exists(target_audio_file):
         print("Extracting audio...")
@@ -88,6 +86,7 @@ def main():
     # 3. Generate CSV
     target_csv_file = os.path.join(args.outCsvDir, f"{args.videoName}_split.csv")
     print("Generating AVA-style CSV...")
+    # Make sure to point labelPath to the "fusion" folder when you run this!
     export_gt_to_ava_csv(args.videoName, args.labelPath, target_frames_dir, target_csv_file)
 
 if __name__ == '__main__':
