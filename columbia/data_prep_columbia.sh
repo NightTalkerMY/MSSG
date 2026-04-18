@@ -119,19 +119,14 @@ fi
 # -------------------------------------------------------------------------
 if [ $stage -eq 8 ]; then
     echo "Extracting Large Body..."
-    name="train"
-    mkdir -p $ColPreData/facebody_large_process/split
     
-    find $ColPreData/csv_split/$name -type f > $ColPreData/facebody_large_process/${name}_list
-    file_split_scp="$ColPreData/facebody_large_process/split/${name}_file_list.1"
-    ./columbia/local/utils/split_scp.pl $ColPreData/facebody_large_process/${name}_list $file_split_scp
-    
-    mkdir -p ./log/facebody_large_process
+    # Create the output directory
     mkdir -p $AVADataPath/clips_videos_face_body_large
     
-    ./columbia/local/utils/run.pl JOB=1:$nj \
-    ./log/facebody_large_process/facebody_large_process.JOB.log \
-        python ./columbia/local/prepare_facebody_large.py --input_file_list=$ColPreData/facebody_large_process/split/${name}_file_list.JOB \
-                                                 --AVADataPath $AVADataPath \
-                                                 --out_path=$AVADataPath/clips_videos_face_body_large
+    # Run our smart Python script directly!
+    python ./columbia/local/prepare_facebody_large.py \
+        --AVADataPath $AVADataPath \
+        --out_path $AVADataPath/clips_videos_face_body_large
+        
+    echo "F_largebody extraction complete! Data Prep is officially DONE."
 fi
