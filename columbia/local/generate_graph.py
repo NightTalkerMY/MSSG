@@ -17,6 +17,9 @@ def decode_feature(feature_data):
     return np.array([float(fd) for fd in feature_data], dtype=np.float32)
 
 def run(args):
+    # --- ADD THIS LINE TO FIX THE FOLDER CRASH ---
+    os.makedirs(args.out_path, exist_ok=True)
+    # ---------------------------------------------
     ct=1
     # get input list
     with open(args.input_file_list, 'r') as file:

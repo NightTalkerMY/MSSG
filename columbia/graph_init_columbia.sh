@@ -87,12 +87,12 @@ if [ $stage -eq 9 ]; then
     echo "./data/Columbia/predata/csv_split/train/col.csv" > ./log/col_graph_list.txt
 
     # 3. Extract the video size info
-    python ./local/get_size_of_each_video.py \
+    python ./columbia/local/get_size_of_each_video.py \
     --AVADataPath ./data/Columbia \
     --out_path ./data/Columbia/predata/video_size_info
 
     # 4. Construct the final graph!
-    python ./local/generate_graph.py \
+    python ./columbia/local/generate_graph.py \
     --input_file_list=./log/col_graph_list.txt \
     --face_feats_info_path=./data/Columbia/predata/face_feats_info/train \
     --background_feats_info_path=./data/Columbia/predata/background_feats_info/train \
