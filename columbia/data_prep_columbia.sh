@@ -51,21 +51,16 @@ fi
 # -------------------------------------------------------------------------
 if [ $stage -eq 4 ]; then
     echo "Extracting Body..."
-    name="train"
-    mkdir -p $ColPreData/facebody_process/split
     
-    find $ColPreData/csv_split/$name -type f > $ColPreData/facebody_process/${name}_list
-    file_split_scp="$ColPreData/facebody_process/split/${name}_file_list.1"
-    ./columbia/local/utils/split_scp.pl $ColPreData/facebody_process/${name}_list $file_split_scp
-    
-    mkdir -p ./log/facebody_process
+    # Create the output directory
     mkdir -p $AVADataPath/clips_videos_face_body
     
-    ./columbia/local/utils/run.pl JOB=1:$nj \
-    ./log/facebody_process/facebody_process.JOB.log \
-        python ./columbia/local/prepare_facebody.py --input_file_list=$ColPreData/facebody_process/split/${name}_file_list.JOB \
-                                           --AVADataPath $AVADataPath \
-                                           --out_path=$AVADataPath/clips_videos_face_body
+    # Run our smart Python script directly!
+    python ./columbia/local/prepare_facebody.py \
+        --AVADataPath $AVADataPath \
+        --out_path $AVADataPath/clips_videos_face_body
+        
+    echo "Face-Body extraction complete!"
 fi
 
 # -------------------------------------------------------------------------
@@ -73,21 +68,16 @@ fi
 # -------------------------------------------------------------------------
 if [ $stage -eq 5 ]; then
     echo "Extracting Head..."
-    name="train"
-    mkdir -p $ColPreData/face_process/split
     
-    find $ColPreData/csv_split/$name -type f > $ColPreData/face_process/${name}_list
-    file_split_scp="$ColPreData/face_process/split/${name}_file_list.1"
-    ./columbia/local/utils/split_scp.pl $ColPreData/face_process/${name}_list $file_split_scp
-    
-    mkdir -p ./log/face_process
+    # Create the output directory
     mkdir -p $AVADataPath/clips_videos_face_large_region
     
-    ./columbia/local/utils/run.pl JOB=1:$nj \
-    ./log/face_process/face_process.JOB.log \
-        python ./columbia/local/prepare_largeface.py --input_file_list=$ColPreData/face_process/split/${name}_file_list.JOB \
-                                            --AVADataPath $AVADataPath \
-                                            --out_path=$AVADataPath/clips_videos_face_large_region
+    # Run our smart Python script directly!
+    python ./columbia/local/prepare_largeface.py \
+        --AVADataPath $AVADataPath \
+        --out_path $AVADataPath/clips_videos_face_large_region
+        
+    echo "F_head extraction complete!"
 fi
 
 # -------------------------------------------------------------------------
@@ -95,48 +85,33 @@ fi
 # -------------------------------------------------------------------------
 if [ $stage -eq 6 ]; then
     echo "Extracting Small Face..."
-    name="train"
-    mkdir -p $ColPreData/face_process_small/split
     
-    find $ColPreData/csv_split/$name -type f > $ColPreData/face_process_small/${name}_list
-    file_split_scp="$ColPreData/face_process_small/split/${name}_file_list.1"
-    ./columbia/local/utils/split_scp.pl $ColPreData/face_process_small/${name}_list $file_split_scp
-    
-    mkdir -p ./log/face_process_small
+    # Create the output directory
     mkdir -p $AVADataPath/clips_videos_face_small_region
     
-    ./columbia/local/utils/run.pl JOB=1:$nj \
-    ./log/face_process_small/face_process_small.JOB.log \
-        python ./columbia/local/prepare_smallface.py --input_file_list=$ColPreData/face_process_small/split/${name}_file_list.JOB \
-                                            --AVADataPath $AVADataPath \
-                                            --out_path=$AVADataPath/clips_videos_face_small_region
+    # Run our smart Python script directly!
+    python ./columbia/local/prepare_smallface.py \
+        --AVADataPath $AVADataPath \
+        --out_path $AVADataPath/clips_videos_face_small_region
+        
+    echo "F_smallface extraction complete!"
 fi
 
 # -------------------------------------------------------------------------
 # STAGE 7: Extract F_mouse (Lower Face)
 # -------------------------------------------------------------------------
 if [ $stage -eq 7 ]; then
-    echo "Extracting Lower Face..."
-    name="train"
-    mkdir -p $ColPreData/face_process
+    echo "Extracting Lower Face (Mouth)..."
     
-    # FIX: Point to clips_videos_faces!
-    python ./columbia/local/get_leaf_dir_list.py --AVADataPath=$AVADataPath/clips_videos/$name --out_file=$ColPreData/face_process/${name}_list
-    
-    mkdir -p $ColPreData/face_process/split
-    file_split_scp="$ColPreData/face_process/split/${name}_file_list.1"
-    ./columbia/local/utils/split_scp.pl $ColPreData/face_process/${name}_list $file_split_scp
-    
-    mkdir -p ./log/extract_mouse
+    # Create the output directory
     mkdir -p $AVADataPath/clips_videos_down_face
     
-    nj=1
-    ./columbia/local/utils/run.pl JOB=1:$nj \
-    ./log/extract_mouse/extract_mouse.JOB.log \
-        python ./columbia/local/prepare_halfface.py --input_file_list=$ColPreData/face_process/split/${name}_file_list.JOB \
-                                           --AVADataPath $AVADataPath \
-                                           --down_out_path=$AVADataPath/clips_videos_down_face \
-                                           --csv_split_root=$ColPreData/csv_split/$name
+    # Run our smart Python script directly!
+    python ./columbia/local/prepare_halfface.py \
+        --AVADataPath $AVADataPath \
+        --down_out_path $AVADataPath/clips_videos_down_face
+        
+    echo "Lower Face extraction complete!"
 fi
 
 # -------------------------------------------------------------------------
