@@ -21,8 +21,17 @@ def generate_audio_set(dataPath, batchList):
     audioSet = {}
     for line in batchList:
         data = line.split('\t')
-        videoName = data[0][:11]
+
         dataName = data[0]
+        # --- THE FIX ---
+        # Grab just the first word (e.g., 'abbas' from 'abbas_tracks_25000')
+        base_name = dataName.split('_')[0] 
+
+        if base_name in ['abbas', 'bell', 'boll', 'lieb', 'long', 'sick']:
+            videoName = 'col'
+        else:
+            videoName = dataName[:11]
+        # ---------------
         safeName = dataName.replace(':', '_') # <-- Our Windows Fix
         
         audio_path = os.path.join(dataPath, videoName, safeName + '.wav')
@@ -141,7 +150,13 @@ def load_audio(data, dataPath, numFrames, audioAug, audioSet = None):
 def load_visual(data, dataPath, numFrames, H, visualAug): 
     # dataName = data[0]
     dataName = data[0].replace(':', '_') # <-- Our Windows Fix
-    videoName = data[0][:11]
+    # --- THE FIX ---
+    base_name = dataName.split('_')[0]
+    if base_name in ['abbas', 'bell', 'boll', 'lieb', 'long', 'sick']:
+        videoName = 'col'
+    else:
+        videoName = dataName[:11]
+    # ---------------
     faceFolderPath = os.path.join(dataPath, videoName, dataName)
     faceFiles = glob.glob("%s/*.jpg"%faceFolderPath)
     sortedFaceFiles = sorted(faceFiles, key=lambda data: (float(os.path.basename(data)[:-4])), reverse=False) 
@@ -171,7 +186,13 @@ def load_visual(data, dataPath, numFrames, H, visualAug):
 
 def load_visual_graph_train(data, dataPath, numFrames): 
     dataName = data[0]
-    videoName = data[0][:11]
+    # --- THE FIX ---
+    base_name = dataName.split('_')[0]
+    if base_name in ['abbas', 'bell', 'boll', 'lieb', 'long', 'sick']:
+        videoName = 'col'
+    else:
+        videoName = dataName[:11]
+    # ---------------
     faceFolderPath = os.path.join(dataPath, videoName, dataName)
     faceFiles = glob.glob("%s/*.jpg"%faceFolderPath)
     sortedFaceFiles = sorted(faceFiles, key=lambda data: (float(os.path.basename(data)[:-4])), reverse=False) 
@@ -237,7 +258,13 @@ def load_audio_graph_train(data, dataPath, numFrames, audioSet = None):
 
 def load_visual_face(data, dataPath, numFrames, H, visualAug): 
     dataName = data[0]
-    videoName = data[0][:11]
+    # --- THE FIX ---
+    base_name = dataName.split('_')[0]
+    if base_name in ['abbas', 'bell', 'boll', 'lieb', 'long', 'sick']:
+        videoName = 'col'
+    else:
+        videoName = dataName[:11]
+    # ---------------
     faceFolderPath = os.path.join(dataPath, videoName, dataName)
     faceFiles = glob.glob("%s/*.jpg"%faceFolderPath)
     sortedFaceFiles = sorted(faceFiles, key=lambda data: (float(os.path.basename(data)[:-4])), reverse=False) 
@@ -268,7 +295,13 @@ def load_visual_face(data, dataPath, numFrames, H, visualAug):
 
 def load_visual_multiscale(data, scale_num, dataPath, numFrames, H, visualAug): 
     dataName = data[0]
-    videoName = data[0][:11]
+    # --- THE FIX ---
+    base_name = dataName.split('_')[0]
+    if base_name in ['abbas', 'bell', 'boll', 'lieb', 'long', 'sick']:
+        videoName = 'col'
+    else:
+        videoName = dataName[:11]
+    # ---------------
     faceFolderPath = os.path.join(dataPath, videoName, dataName)
     faceFiles = glob.glob("%s/*.jpg"%faceFolderPath)
     sortedFaceFiles = sorted(faceFiles, key=lambda data: (float(os.path.basename(data)[:-4])), reverse=False) 
