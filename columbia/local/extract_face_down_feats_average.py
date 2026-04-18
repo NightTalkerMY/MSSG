@@ -159,18 +159,25 @@ if __name__ == '__main__':
     train_loader = feat_extract_loader(trialFileName = os.path.join(args.dataPathAVA, 'csv', 'train_loader.csv'), \
                               audioPath     = os.path.join(args.dataPathAVA, 'clips_audios', 'train'), \
                             #   visualPath    = os.path.join(args.dataPathAVA, 'clips_videos_down_face', 'train'), \
-                              visualPath = os.path.join(args.dataPathAVA, 'clips_videos_down_face', 'Columbia', 'clips_videos_faces', 'train'),
+                              visualPath = os.path.join(args.dataPathAVA, 'clips_videos_down_face', 'train'),
                               H = 112,
                               type='train',
                               )
-    val_loader = feat_extract_loader(trialFileName = os.path.join(args.dataPathAVA, 'csv', 'val_loader.csv'), \
-                            audioPath     = os.path.join(args.dataPathAVA, 'clips_audios', 'val'), \
-                            visualPath    = os.path.join(args.dataPathAVA, 'clips_videos_down_face', 'val'), \
-                            H = 112,
-                            type='val',
-                            )
+    # --- MISSING VAL SET BYPASS ---
+    val_csv = os.path.join(args.dataPathAVA, 'csv', 'val_loader.csv')
+    if os.path.exists(val_csv):
+        val_loader = feat_extract_loader(trialFileName = os.path.join(args.dataPathAVA, 'csv', 'val_loader.csv'), \
+                                audioPath     = os.path.join(args.dataPathAVA, 'clips_audios', 'val'), \
+                                visualPath    = os.path.join(args.dataPathAVA, 'clips_videos_down_face', 'val'), \
+                                H = 112,
+                                type='val',
+                                )
+        valLoader = torch.utils.data.DataLoader(val_loader, batch_size = 1, shuffle = False, num_workers = 4, pin_memory = False)
+    else:
+        val_loader = None
+    # ------------------------------
+    
     trainLoader = torch.utils.data.DataLoader(train_loader, batch_size = 1, shuffle = False, num_workers = 4, pin_memory = False)
-    valLoader = torch.utils.data.DataLoader(val_loader, batch_size = 1, shuffle = False, num_workers = 4, pin_memory = False)
     
     s = ASD(encoder_struct=[32,64,128])
     s.loadParameters_multi(args.face_model_path)
@@ -194,10 +201,13 @@ if __name__ == '__main__':
         
         for item in tqdm.tqdm(dataloader):
             clip_name = item[0][0]
-            if clip_name in ['abbas', 'bell', 'boll', 'lieb', 'long', 'sick']:
+            # --- TRACK ID BYPASS ---
+            base_name = clip_name.split('_')[0]
+            if base_name in ['abbas', 'bell', 'boll', 'lieb', 'long', 'sick']:
                 video_name = 'col'
             else:
                 video_name = clip_name[:11]
+            # -----------------------
                 
             clip_timestamps = clip_info[clip_name]
             audio_feats = item[1][0]

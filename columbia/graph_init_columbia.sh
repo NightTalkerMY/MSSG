@@ -7,11 +7,6 @@ AVADataPath="./data/Columbia"
 ColPreData="./data/Columbia/predata"
 GPU=0
 
-# generate baseline face crops (equivalent to tools.py extract_video_clips)
-if [ $stage -eq 1 ]; then
-    echo "Generating Baseline Face Crops for Columbia..."
-    python ./columbia/prep_baseline_faces.py
-fi
 
 # initialize node e_face
 if [ $stage -eq 2 ]; then

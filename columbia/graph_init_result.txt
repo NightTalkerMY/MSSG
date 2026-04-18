@@ -1,0 +1,91 @@
+(venv)
+wwon0076@MMEN2-FYP-061 MINGW64 /d/FYP/MSSG (main)
+$ bash columbia/graph_init_columbia.sh 2
+Extracting Face Features...
+col
+Skipping val... file not found: ./data/Columbia\csv\val_orig.csv
+Using 1 GPUs
+04-19 03:03:49 Model para number = 1.02
+['model_0040.model', 'model_0039.model', 'model_0038.model', 'model_0037.model', 'model_0036.model', 'model_0035.model', 'model_0034.model']
+Average 7 models
+  0%|                                                                       | 0/30 [00:00<?, ?it/s]Could not load symbol cublasGetSmCountTarget from cublas64_11.dll. Error code 127
+
+Processing video: col
+100%|██████████████████████████████████████████████████████████████| 30/30 [01:30<00:00,  3.01s/it]
+mAP: 93.87427144148201
+(venv)
+wwon0076@MMEN2-FYP-061 MINGW64 /d/FYP/MSSG (main)
+$ bash columbia/graph_init_columbia.sh 3
+Extracting Background Features...
+Using 1 GPUs
+04-19 03:12:29 Model para number = 1.02
+  0%|                                                                       | 0/30 [00:00<?, ?it/s]Could not load symbol cublasGetSmCountTarget from cublas64_11.dll. Error code 127
+
+Processing video: col
+100%|██████████████████████████████████████████████████████████████| 30/30 [01:39<00:00,  3.31s/it]
+mAP: 88.37355815251533
+(venv)
+wwon0076@MMEN2-FYP-061 MINGW64 /d/FYP/MSSG (main)
+$ bash columbia/graph_init_columbia.sh 4
+Extracting Small Face Features...
+Using 1 GPUs
+04-19 03:21:03 Model para number = 1.02
+['model_0047.model', 'model_0046.model', 'model_0045.model', 'model_0044.model', 'model_0043.model', 'model_0042.model', 'model_0041.model']
+Average 7 models
+  0%|                                                                       | 0/30 [00:00<?, ?it/s]Could not load symbol cublasGetSmCountTarget from cublas64_11.dll. Error code 127
+
+Processing video: col
+100%|██████████████████████████████████████████████████████████████| 30/30 [00:58<00:00,  1.95s/it]
+mAP: 92.92083977927633
+(venv)
+wwon0076@MMEN2-FYP-061 MINGW64 /d/FYP/MSSG (main)
+$ bash columbia/graph_init_columbia.sh 5
+Extracting Body Features...
+Using 1 GPUs
+04-19 03:24:12 Model para number = 1.02
+['model_0052.model', 'model_0051.model', 'model_0050.model', 'model_0049.model', 'model_0048.model', 'model_0047.model', 'model_0046.model']
+Average 7 models
+  0%|                                                                       | 0/30 [00:00<?, ?it/s]Could not load symbol cublasGetSmCountTarget from cublas64_11.dll. Error code 127
+
+Processing video: col
+100%|██████████████████████████████████████████████████████████████| 30/30 [04:29<00:00,  8.97s/it]
+mAP: 92.6616067542956
+(venv)
+wwon0076@MMEN2-FYP-061 MINGW64 /d/FYP/MSSG (main)
+$ bash columbia/graph_init_columbia.sh 6
+Extracting Large Face (Head) Features...
+Using 1 GPUs
+04-19 03:30:43 Model para number = 1.02
+['model_0044.model', 'model_0043.model', 'model_0042.model', 'model_0041.model', 'model_0040.model', 'model_0039.model', 'model_0038.model']
+Average 7 models
+  0%|                                                                       | 0/30 [00:00<?, ?it/s]Could not load symbol cublasGetSmCountTarget from cublas64_11.dll. Error code 127
+
+Processing video: col
+100%|██████████████████████████████████████████████████████████████| 30/30 [01:26<00:00,  2.90s/it]
+mAP: 96.57326347043845
+(venv)
+wwon0076@MMEN2-FYP-061 MINGW64 /d/FYP/MSSG (main)
+$ bash columbia/graph_init_columbia.sh 7
+Extracting Lower Face Features...
+Using 1 GPUs
+04-19 03:35:32 Model para number = 1.02
+['model_0041.model', 'model_0040.model', 'model_0039.model', 'model_0038.model', 'model_0037.model', 'model_0036.model', 'model_0035.model']
+Average 7 models
+  0%|                                                                       | 0/30 [00:00<?, ?it/s]Could not load symbol cublasGetSmCountTarget from cublas64_11.dll. Error code 127
+
+Processing video: col
+100%|██████████████████████████████████████████████████████████████| 30/30 [01:12<00:00,  2.42s/it]
+mAP: 95.2049259819525
+(venv)
+wwon0076@MMEN2-FYP-061 MINGW64 /d/FYP/MSSG (main)
+$ bash columbia/graph_init_columbia.sh 8
+Extracting Large Body Features...
+Using 1 GPUs
+04-19 03:37:32 Model para number = 1.02
+['model_0043.model', 'model_0042.model', 'model_0041.model', 'model_0040.model', 'model_0039.model', 'model_0038.model', 'model_0037.model']
+Average 7 models
+  0%|                                                                       | 0/30 [00:00<?, ?it/s]Could not load symbol cublasGetSmCountTarget from cublas64_11.dll. Error code 127
+
+Processing video: col
+100%|██████████████████████████████████████████████████████████████| 30/30 [03:34<00:00,  7.13s/it]
+mAP: 93.91674837032068
