@@ -1,0 +1,20 @@
+--- Booting Columbia Evaluation ---
+Loading Graph Data...
+ Graph Model para number = 0.02 M
+Loading Pre-trained Weights from: ./exps/graph_training/graph_2000/chckpoint_best.pt
+Evaluating Graph Nodes...
+100%|██████████████████████████████████████████████████████████████| 75/75 [00:04<00:00, 18.08it/s]
+Mapping predictions to individual speakers...
+
+==================================================
+Speaker         | mAP (%)         | Best F1 (%)
+--------------------------------------------------
+Abbas           | 99.73           | 99.03
+Bell            | 99.15           | 95.26
+Boll            | 93.04           | 84.78
+Lieb            | 98.23           | 94.94
+Long            | 98.82           | 94.26
+Sick            | 98.84           | 94.36
+--------------------------------------------------
+AVERAGE         | 97.97           | 93.77
+==================================================
