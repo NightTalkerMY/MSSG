@@ -12,7 +12,7 @@ nj=1
 if [ $stage -eq 0 ]; then
     echo "Setting up Columbia Preprocessing..."
 
-    python columbia/prep_columbia.py --videoPath ./columbia/colDataPath/col.mp4 --labelPath ./columbia/colDataPath/col_labels/fusion
+    python columbia/prep_columbia.py --videoPath ./columbia/colDataPath/col.mp4 --labelPath ./columbia/colDataPath/real_labels
 
     echo "Columbia Preprocessing Complete!"
 fi
