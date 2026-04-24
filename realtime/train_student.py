@@ -4,44 +4,78 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import random
+from torch.utils.data import IterableDataset
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 
 from student_model import CausalStudentASD
 
 # --- 1. THE CHUNKED DATALOADER ---
-class ChunkedHoloPiDataset(Dataset):
+# class ChunkedHoloPiDataset(Dataset):
+#     def __init__(self, cache_dir):
+#         self.files = sorted(glob.glob(os.path.join(cache_dir, "train_cache_part_*.pt")))
+#         print(f"Found {len(self.files)} cache files.")
+        
+#         self.data_map = []
+#         for file_idx, f_path in enumerate(self.files):
+#             v_shape = torch.load(f_path, map_location='cpu')['l'].shape[0] 
+#             for local_idx in range(v_shape):
+#                 self.data_map.append((f_path, local_idx))
+                
+#         self.current_file_path = None
+#         self.current_data = None
+
+#     def __len__(self):
+#         return len(self.data_map)
+
+#     def __getitem__(self, idx):
+#         file_path, local_idx = self.data_map[idx]
+        
+#         if self.current_file_path != file_path:
+#             self.current_data = torch.load(file_path, map_location='cpu')
+#             self.current_file_path = file_path
+            
+#         return (
+#             self.current_data['v'][local_idx],
+#             self.current_data['a'][local_idx],
+#             self.current_data['t'][local_idx], 
+#             self.current_data['s'][local_idx],
+#             self.current_data['l'][local_idx],
+#             self.current_data['m'][local_idx]
+#         )
+class ChunkedHoloPiIterableDataset(IterableDataset):
+    """
+    Loads one chunk file at a time, shuffles internally, and feeds the GPU.
+    Completely eliminates SSD thrashing.
+    """
     def __init__(self, cache_dir):
         self.files = sorted(glob.glob(os.path.join(cache_dir, "train_cache_part_*.pt")))
         print(f"Found {len(self.files)} cache files.")
-        
-        self.data_map = []
-        for file_idx, f_path in enumerate(self.files):
-            v_shape = torch.load(f_path, map_location='cpu')['l'].shape[0] 
-            for local_idx in range(v_shape):
-                self.data_map.append((f_path, local_idx))
-                
-        self.current_file_path = None
-        self.current_data = None
 
-    def __len__(self):
-        return len(self.data_map)
-
-    def __getitem__(self, idx):
-        file_path, local_idx = self.data_map[idx]
+    def __iter__(self):
+        # 1. Shuffle the order of the files every epoch
+        random.shuffle(self.files)
         
-        if self.current_file_path != file_path:
-            self.current_data = torch.load(file_path, map_location='cpu')
-            self.current_file_path = file_path
+        for f_path in self.files:
+            # 2. Load the single 2GB file into RAM
+            data = torch.load(f_path, map_location='cpu')
+            num_items = data['l'].shape[0]
             
-        return (
-            self.current_data['v'][local_idx],
-            self.current_data['a'][local_idx],
-            self.current_data['t'][local_idx], 
-            self.current_data['s'][local_idx],
-            self.current_data['l'][local_idx],
-            self.current_data['m'][local_idx]
-        )
+            # 3. Shuffle the 2000 items inside this specific chunk
+            indices = list(range(num_items))
+            random.shuffle(indices)
+            
+            # 4. Yield them one by one to form the batch
+            for idx in indices:
+                yield (
+                    data['v'][idx],
+                    data['a'][idx],
+                    data['t'][idx],
+                    data['s'][idx],
+                    data['l'][idx],
+                    data['m'][idx]
+                )
 
 # --- 2. DUAL-MODE DISTILLATION LOSS ---
 class KDLoss(nn.Module):
@@ -117,8 +151,10 @@ def main():
     # --- TOGGLE YOUR MODE HERE ---
     TRAINING_MODE = 'ce_mse' # Switch to 'ce_mse' to disable KL Divergence
     
-    cache_dir = r"D:\FYP\MSSG\predata\cached_chunks"
-    dataset = ChunkedHoloPiDataset(cache_dir)
+    cache_dir = r"D:\FYP\MSSG\realtime\cached_chunks"
+    # dataset = ChunkedHoloPiDataset(cache_dir)
+    # train_loader = DataLoader(dataset, batch_size=16, shuffle=True, num_workers=0)
+    dataset = ChunkedHoloPiIterableDataset(cache_dir)
     train_loader = DataLoader(dataset, batch_size=16, shuffle=True, num_workers=0)
     
     model = CausalStudentASD().to(device)
