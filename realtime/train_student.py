@@ -149,7 +149,7 @@ def main():
     print(f"Training on: {device}")
     
     # --- TOGGLE YOUR MODE HERE ---
-    TRAINING_MODE = 'ce_mse' # Switch to 'ce_mse' to disable KL Divergence
+    TRAINING_MODE = 'ce_mse_kl' # Switch to 'ce_mse' to disable KL Divergence
     
     cache_dir = r"D:\FYP\MSSG\realtime\cached_chunks"
     # dataset = ChunkedHoloPiDataset(cache_dir)
@@ -212,7 +212,7 @@ def main():
         avg_loss = total_loss / num_batches 
         print(f"Epoch {epoch+1} Completed. Avg Total Loss: {avg_loss:.4f}")
         
-        save_path = f"D:\\FYP\\MSSG\\holopi_student_epoch_{epoch+1}.pt"
+        save_path = f"D:\\FYP\\MSSG\\realtime\\realtime_epoch\\holopi_student_epoch_{epoch+1}.pt"
         torch.save(model.state_dict(), save_path)
         print(f"Checkpoint saved to {save_path}")
 

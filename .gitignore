@@ -4,7 +4,12 @@ data/
 log/
 graphs/
 colDataPath/
+val_cached_chunks/
+columbia_cached_chunks/
 cached_chunks/
+realtime_epoch/
+realtime_epoch_mse_ce/
+realtime_epoch_mse_ce_kl/
 
 # Ignore everything inside predata, EXCEPT pretrain_model
 predata/*
