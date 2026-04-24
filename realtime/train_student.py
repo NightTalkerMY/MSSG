@@ -155,7 +155,7 @@ def main():
     # dataset = ChunkedHoloPiDataset(cache_dir)
     # train_loader = DataLoader(dataset, batch_size=16, shuffle=True, num_workers=0)
     dataset = ChunkedHoloPiIterableDataset(cache_dir)
-    train_loader = DataLoader(dataset, batch_size=16, shuffle=True, num_workers=0)
+    train_loader = DataLoader(dataset, batch_size=16, num_workers=0)
     
     model = CausalStudentASD().to(device)
     teacher_sim = TeacherLogitSimulator().to(device)
@@ -170,6 +170,8 @@ def main():
         model.train()
         total_loss, total_ce, total_mse, total_kl = 0.0, 0.0, 0.0, 0.0
         
+        num_batches = 0 # 1. ADD THIS COUNTER
+        
         pbar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs}")
         
         for v, a, t, s, l, m in pbar:
@@ -178,13 +180,9 @@ def main():
             
             optimizer.zero_grad()
             
-            # Generate simulated Teacher logits from the cached 128-D features
             t_logits = teacher_sim(t) if TRAINING_MODE == 'ce_mse_kl' else None
-            
-            # Forward Pass (Student)
             student_logits, student_features = model(v, a, s, m)
             
-            # Calculate Dual-Mode Loss
             loss, loss_ce, loss_mse, loss_kl = criterion(
                 student_logits, student_features, t, t_logits, l, m
             )
@@ -198,6 +196,8 @@ def main():
             total_mse += loss_mse.item()
             total_kl += loss_kl.item()
             
+            num_batches += 1 # 2. INCREMENT THE COUNTER HERE
+            
             metrics = {
                 'Tot': f"{loss.item():.3f}", 
                 'CE': f"{loss_ce.item():.3f}", 
@@ -208,7 +208,8 @@ def main():
                 
             pbar.set_postfix(metrics)
             
-        avg_loss = total_loss / len(train_loader)
+        # 3. DIVIDE BY OUR COUNTER INSTEAD OF len(train_loader)
+        avg_loss = total_loss / num_batches 
         print(f"Epoch {epoch+1} Completed. Avg Total Loss: {avg_loss:.4f}")
         
         save_path = f"D:\\FYP\\MSSG\\holopi_student_epoch_{epoch+1}.pt"
