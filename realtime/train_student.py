@@ -2,31 +2,25 @@ import os
 import glob
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 
-# Import our custom Student model from Phase 2
 from student_model import CausalStudentASD
 
 # --- 1. THE CHUNKED DATALOADER ---
 class ChunkedHoloPiDataset(Dataset):
-    """
-    Dynamically loads the 2000-chunk .pt files to protect your 64GB RAM.
-    """
     def __init__(self, cache_dir):
         self.files = sorted(glob.glob(os.path.join(cache_dir, "train_cache_part_*.pt")))
         print(f"Found {len(self.files)} cache files.")
         
         self.data_map = []
-        # Quickly map exactly which chunk lives in which file
         for file_idx, f_path in enumerate(self.files):
-            # Load just the metadata/shape, not the whole file
             v_shape = torch.load(f_path, map_location='cpu')['l'].shape[0] 
             for local_idx in range(v_shape):
                 self.data_map.append((f_path, local_idx))
                 
-        # Cache the currently opened file so we don't constantly hit the SSD
         self.current_file_path = None
         self.current_data = None
 
@@ -36,7 +30,6 @@ class ChunkedHoloPiDataset(Dataset):
     def __getitem__(self, idx):
         file_path, local_idx = self.data_map[idx]
         
-        # Load the file into RAM only if it's not already loaded
         if self.current_file_path != file_path:
             self.current_data = torch.load(file_path, map_location='cpu')
             self.current_file_path = file_path
@@ -44,98 +37,144 @@ class ChunkedHoloPiDataset(Dataset):
         return (
             self.current_data['v'][local_idx],
             self.current_data['a'][local_idx],
-            self.current_data['t'][local_idx], # The Cached Teacher!
+            self.current_data['t'][local_idx], 
             self.current_data['s'][local_idx],
             self.current_data['l'][local_idx],
             self.current_data['m'][local_idx]
         )
 
-# --- 2. THE DISTILLATION LOSS ---
+# --- 2. DUAL-MODE DISTILLATION LOSS ---
 class KDLoss(nn.Module):
-    def __init__(self, alpha=0.5):
+    def __init__(self, mode='ce_mse_kl', alpha=0.5, beta=0.3, temperature=3.0):
         super(KDLoss, self).__init__()
-        self.alpha = alpha
-        # Standard classification loss for 0/1 Speaking labels
+        self.mode = mode
+        self.alpha = alpha     # Weight for CE Loss
+        self.beta = beta       # Weight for MSE Loss (KL takes the remainder)
+        self.temperature = temperature
+        
         self.ce_loss = nn.CrossEntropyLoss(reduction='none')
-        # Feature matching loss to mimic the Teacher
         self.mse_loss = nn.MSELoss(reduction='none')
+        self.kl_loss = nn.KLDivLoss(reduction='none')
 
-    def forward(self, student_logits, student_features, teacher_features, labels, mask):
-        # Flatten everything to [Batch * Speakers * Frames, ...]
+    def forward(self, s_logits, s_features, t_features, t_logits, labels, mask):
+        # Flatten and filter out the Ghost Padding
         flat_mask = mask.view(-1)
-        valid_indices = flat_mask > 0.5 # Ignore the Ghost padding!
+        valid_indices = flat_mask > 0.5 
         
         # 1. Hard Classification Loss (Cross Entropy)
-        flat_logits = student_logits.view(-1, 2)[valid_indices]
+        flat_s_logits = s_logits.view(-1, 2)[valid_indices]
         flat_labels = labels.view(-1)[valid_indices]
-        loss_ce = self.ce_loss(flat_logits, flat_labels).mean()
+        loss_ce = self.ce_loss(flat_s_logits, flat_labels).mean()
         
-        # 2. Feature Distillation Loss (MSE)
-        flat_s_feat = student_features.view(-1, 128)[valid_indices]
-        flat_t_feat = teacher_features.view(-1, 128)[valid_indices]
+        # 2. Feature Hint Loss (MSE)
+        flat_s_feat = s_features.view(-1, 128)[valid_indices]
+        flat_t_feat = t_features.view(-1, 128)[valid_indices]
         loss_mse = self.mse_loss(flat_s_feat, flat_t_feat).mean()
         
-        # 3. Combine them
-        total_loss = (self.alpha * loss_ce) + ((1 - self.alpha) * loss_mse)
-        return total_loss, loss_ce, loss_mse
+        # 3. Soft Logit Loss (KL Divergence)
+        if self.mode == 'ce_mse_kl' and t_logits is not None:
+            flat_t_logits = t_logits.view(-1, 2)[valid_indices]
+            
+            # PyTorch KLDiv requires log_softmax for the student, and regular softmax for the teacher
+            s_log_probs = F.log_softmax(flat_s_logits / self.temperature, dim=-1)
+            t_probs = F.softmax(flat_t_logits / self.temperature, dim=-1)
+            
+            # Calculate KL and multiply by T^2 to scale gradients properly
+            loss_kl = self.kl_loss(s_log_probs, t_probs).sum(dim=-1).mean() * (self.temperature ** 2)
+            
+            # Weighted sum of all three
+            gamma = 1.0 - (self.alpha + self.beta)
+            total_loss = (self.alpha * loss_ce) + (self.beta * loss_mse) + (gamma * loss_kl)
+            
+            return total_loss, loss_ce, loss_mse, loss_kl
+            
+        else:
+            # Fallback to pure CE + MSE mode
+            total_loss = (self.alpha * loss_ce) + ((1.0 - self.alpha) * loss_mse)
+            return total_loss, loss_ce, loss_mse, torch.tensor(0.0)
 
-# --- 3. THE TRAINING LOOP ---
+# --- 3. TEACHER LOGIT SIMULATOR (Temporary) ---
+class TeacherLogitSimulator(nn.Module):
+    """
+    Simulates the Teacher's PyG classifier so the KL math can run.
+    Replace this with the real Teacher logits if extracted offline later.
+    """
+    def __init__(self):
+        super().__init__()
+        self.mock_classifier = nn.Linear(128, 2)
+        # Freeze it so it acts like a static teacher
+        for param in self.mock_classifier.parameters():
+            param.requires_grad = False
+            
+    def forward(self, t_features):
+        return self.mock_classifier(t_features)
+
+# --- 4. THE TRAINING LOOP ---
 def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Training on: {device}")
     
-    # Initialize Dataset and Dataloader
-    cache_dir = r"D:\FYP\MSSG\realtime\cached_chunks"
-    dataset = ChunkedHoloPiDataset(cache_dir)
+    # --- TOGGLE YOUR MODE HERE ---
+    TRAINING_MODE = 'ce_mse' # Switch to 'ce_mse' to disable KL Divergence
     
-    # num_workers=0 is still recommended on Windows to avoid pickling the loaded files
+    cache_dir = r"D:\FYP\MSSG\predata\cached_chunks"
+    dataset = ChunkedHoloPiDataset(cache_dir)
     train_loader = DataLoader(dataset, batch_size=16, shuffle=True, num_workers=0)
     
-    # Initialize Model, Loss, and Optimizer
     model = CausalStudentASD().to(device)
-    criterion = KDLoss(alpha=0.5) # 50% CE, 50% Teacher Mimicry
+    teacher_sim = TeacherLogitSimulator().to(device)
+    
+    # If mode is ce_mse_kl: 40% CE, 30% MSE, 30% KL
+    criterion = KDLoss(mode=TRAINING_MODE, alpha=0.4, beta=0.3, temperature=3.0) 
     optimizer = optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-4)
     
     num_epochs = 30
     
     for epoch in range(num_epochs):
         model.train()
-        total_loss = 0.0
-        total_ce = 0.0
-        total_mse = 0.0
+        total_loss, total_ce, total_mse, total_kl = 0.0, 0.0, 0.0, 0.0
         
-        # TQDM progress bar for the epoch
         pbar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs}")
         
         for v, a, t, s, l, m in pbar:
-            # Move to RTX 4080 Super
             v, a, t = v.to(device), a.to(device), t.to(device)
             s, l, m = s.to(device), l.to(device), m.to(device)
             
             optimizer.zero_grad()
             
+            # Generate simulated Teacher logits from the cached 128-D features
+            t_logits = teacher_sim(t) if TRAINING_MODE == 'ce_mse_kl' else None
+            
             # Forward Pass (Student)
             student_logits, student_features = model(v, a, s, m)
             
-            # Calculate Distillation Loss
-            loss, loss_ce, loss_mse = criterion(student_logits, student_features, t, l, m)
+            # Calculate Dual-Mode Loss
+            loss, loss_ce, loss_mse, loss_kl = criterion(
+                student_logits, student_features, t, t_logits, l, m
+            )
             
-            # Backward Pass
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
             
-            # Update metrics
             total_loss += loss.item()
             total_ce += loss_ce.item()
             total_mse += loss_mse.item()
+            total_kl += loss_kl.item()
             
-            pbar.set_postfix({'Total': f"{loss.item():.3f}", 'CE': f"{loss_ce.item():.3f}", 'MSE': f"{loss_mse.item():.3f}"})
+            metrics = {
+                'Tot': f"{loss.item():.3f}", 
+                'CE': f"{loss_ce.item():.3f}", 
+                'MSE': f"{loss_mse.item():.3f}"
+            }
+            if TRAINING_MODE == 'ce_mse_kl':
+                metrics['KL'] = f"{loss_kl.item():.3f}"
+                
+            pbar.set_postfix(metrics)
             
         avg_loss = total_loss / len(train_loader)
-        print(f"Epoch {epoch+1} Completed. Avg Loss: {avg_loss:.4f}")
+        print(f"Epoch {epoch+1} Completed. Avg Total Loss: {avg_loss:.4f}")
         
-        # Save Student Checkpoint
         save_path = f"D:\\FYP\\MSSG\\holopi_student_epoch_{epoch+1}.pt"
         torch.save(model.state_dict(), save_path)
         print(f"Checkpoint saved to {save_path}")
