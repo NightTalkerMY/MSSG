@@ -4,6 +4,7 @@ data/
 log/
 graphs/
 colDataPath/
+cached_chunks/
 
 # Ignore everything inside predata, EXCEPT pretrain_model
 predata/*
