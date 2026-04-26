@@ -42,31 +42,18 @@ AUDIO_SAMPLE_RATE = 16000
 SAMPLES_PER_FRAME = int(AUDIO_SAMPLE_RATE / FPS)
 
 # ==========================================
-# THE MASTER TRANSLATOR (The Real 896-D Bridge)
+# THE MASTER TRANSLATOR (Sequence-Based)
 # ==========================================
 class MasterTranslator(nn.Module):
-    """Replicates the entire offline 7-Crop PyTorch extraction pipeline in real-time."""
     def __init__(self, pretrain_dir):
         super().__init__()
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         
-        # Order is critical to match the cache builder concatenation!
-        # self.cue_configs = [
-        #     {'name': 'face',            'path': 'face_model',             'size': 112},
-        #     {'name': 'face_body_large', 'path': 'body_large_model',       'size': 224},
-        #     {'name': 'face_body',       'path': 'body_model',             'size': 224},
-        #     {'name': 'face_large',      'path': 'face_large_model',       'size': 112},
-        #     {'name': 'background',      'path': 'background_model.model', 'size': 224}, # <--- FIXED
-        #     # {'name': 'background',      'path': 'background224_model_0027_79.81.model', 'size': 224}, # Assuming single file
-        #     {'name': 'face_small',      'path': 'face_small_model',       'size': 112},
-        #     {'name': 'face_down',       'path': 'face_down_model',        'size': 112}
-        # ]
-        # Order is critically matched to the offline Columbia cache!
         self.cue_configs = [
             {'name': 'face',            'path': 'face_model',             'size': 112},
             {'name': 'face_body_large', 'path': 'body_large_model',       'size': 224},
-            {'name': 'face_large',      'path': 'face_large_model',       'size': 112}, # FIXED ORDER
-            {'name': 'face_body',       'path': 'body_model',             'size': 224}, # FIXED ORDER
+            {'name': 'face_large',      'path': 'face_large_model',       'size': 112}, 
+            {'name': 'face_body',       'path': 'body_model',             'size': 224}, 
             {'name': 'face_small',      'path': 'face_small_model',       'size': 112},
             {'name': 'background',      'path': 'background_model.model', 'size': 224}, 
             {'name': 'face_down',       'path': 'face_down_model',        'size': 112}
@@ -79,100 +66,54 @@ class MasterTranslator(nn.Module):
         for config in self.cue_configs:
             name = config['name']
             full_path = os.path.join(pretrain_dir, config['path'])
-            print(f"Loading {name} weights...")
-            
             s = ASD(encoder_struct=[32,64,128])
             if os.path.isdir(full_path):
                 s.loadParameters_multi(full_path)
             else:
-                # Fallback for single .model files like background
                 s.loadParameters(full_path)
                 
             s.eval()
-            # We ONLY keep the visual frontend to save VRAM
             self.visual_encoders[name] = s.model.visualEncoder.to(self.device)
-            
-            # Steal the audio encoder from the main face model
             if name == 'face':
                 self.audio_encoder = s.model.audioEncoder.to(self.device)
 
-    def _safe_crop(self, img_gray, x1, y1, x2, y2, size):
-        """Extracts crop, resizes, and shapes it for the MSSG Frontend."""
-        h, w = img_gray.shape
-        x1, y1 = max(0, int(x1)), max(0, int(y1))
-        x2, y2 = min(w, int(x2)), min(h, int(y2))
-        
-        crop = img_gray[y1:y2, x1:x2]
-        
-        if crop.size == 0:
-            # Fallback tensor if person walks off screen [B=1, T=1, W=size, H=size]
-            return torch.zeros((1, 1, size, size)).to(self.device)
-            
-        crop = cv2.resize(crop, (size, size))
-        
-        # The visualEncoder expects [B, T, W, H]
-        crop_tensor = torch.FloatTensor(crop).unsqueeze(0).unsqueeze(0).to(self.device)
-        return crop_tensor
-
-    def forward(self, frame_bgr, bbox, audio_mfcc):
-        """Passes 1 frame and 1 audio chunk through the 7 CNNs."""
-        x1, y1, x2, y2 = bbox
-        bw, bh = x2 - x1, y2 - y1
-        h, w = frame_bgr.shape[:2]
-        
-        frame_gray = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2GRAY)
-        
-        # 1. GENERATE THE 7 CROPS MATHEMATICALLY
-        crops = {}
-        
-        # Face
-        crops['face'] = self._safe_crop(frame_gray, x1, y1, x2, y2, 112)
-        
-        # Face Body Large
-        crops['face_body_large'] = self._safe_crop(frame_gray, x1 - 0.5*bw, y1 - 0.1*bh, x2 + 0.5*bw, y2 + 1.0*bh, 224)
-        
-        # Face Body
-        crops['face_body'] = self._safe_crop(frame_gray, x1 - 0.75*bw, y1, x2 + 0.75*bw, y2 + 3.0*bh, 224)
-        
-        # Face Large
-        crops['face_large'] = self._safe_crop(frame_gray, x1 - 0.05*bw, y1 - 0.05*bh, x2 + 0.05*bw, y1 + 0.75*bh, 112)
-        
-        # Background (Full frame, mask face)
-        bg_frame = frame_gray.copy()
-        cv2.rectangle(bg_frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 0, 0), thickness=cv2.FILLED)
-        crops['background'] = self._safe_crop(bg_frame, 0, 0, w, h, 224)
-        
-        # Face Small
-        crops['face_small'] = self._safe_crop(frame_gray, x1 + 0.25*bw, y1 + 0.15*bh, x2 - 0.25*bw, y1 + 0.55*bh, 112)
-        
-        # Face Down
-        crops['face_down'] = self._safe_crop(frame_gray, x1, y1 + 0.35*bh, x2, y1 + 0.60*bh, 112)
-
-        # 2. RUN CNN EXTRACTION
+    def forward(self, crops_dict, audio_sequence):
+        """Passes 50 frames and 200 audio chunks through the 7 CNNs."""
         visual_vectors = []
         with torch.no_grad():
             for config in self.cue_configs:
                 name = config['name']
-                crop_tensor = crops[name]
+                # shape of crop_seq: [50, size, size]
+                crop_seq = crops_dict[name] 
                 
-                # Apply normalization math from ASD_Model
-                crop_tensor = crop_tensor.view(1, 1, 1, config['size'], config['size'])
+                # Transform to [Batch=1, Channels=1, Time=50, W=size, H=size]
+                crop_tensor = torch.FloatTensor(crop_seq).unsqueeze(0).unsqueeze(0).to(self.device)
                 crop_tensor = (crop_tensor / 255.0 - 0.4161) / 0.1688
                 
-                v_feat = self.visual_encoders[name](crop_tensor) # outputs [1, 1, 128]
-                visual_vectors.append(v_feat.view(-1).cpu().numpy())
+                v_feat = self.visual_encoders[name](crop_tensor) # outputs [1, 50, 128]
+                visual_vectors.append(v_feat.squeeze(0).cpu().numpy()) # append [50, 128]
                 
-            # 3. EXTRACT AUDIO
-            # Audio is [1, 4, 13] for one frame's worth of MFCCs
-            a_tensor = torch.FloatTensor(audio_mfcc).unsqueeze(0).to(self.device)
-            # Apply unsqueeze/transpose logic from ASD_Model
-            a_tensor = a_tensor.unsqueeze(1).transpose(2, 3) 
-            a_feat = self.audio_encoder(a_tensor) # outputs [1, 1, 128]
+            # EXTRACT AUDIO SEQUENCE
+            # audio_sequence is [200, 13] (50 frames * 4)
+            a_tensor = torch.FloatTensor(audio_sequence).unsqueeze(0).to(self.device)
+            a_tensor = a_tensor.unsqueeze(1).transpose(2, 3) # [1, 1, 13, 200]
+            a_feat = self.audio_encoder(a_tensor) # outputs [1, 50, 128]
             
-        final_v_896 = np.concatenate(visual_vectors, axis=0)
-        final_a_128 = a_feat.view(-1).cpu().numpy()
+        # Concat along feature dimension to get [50, 896]
+        final_v_896 = np.concatenate(visual_vectors, axis=-1)
+        final_a_128 = a_feat.squeeze(0).cpu().numpy() # [50, 128]
         
         return final_v_896, final_a_128
+
+
+def get_crop(img_gray, x1, y1, x2, y2, size):
+    """Helper to safely slice and resize raw numpy array."""
+    h, w = img_gray.shape
+    x1, y1 = max(0, int(x1)), max(0, int(y1))
+    x2, y2 = min(w, int(x2)), min(h, int(y2))
+    crop = img_gray[y1:y2, x1:x2]
+    if crop.size == 0: return np.zeros((size, size), dtype=np.uint8)
+    return cv2.resize(crop, (size, size))
 
 # ==========================================
 # MAIN PIPELINE
@@ -238,31 +179,53 @@ def main():
             else:
                 audio_mfcc = np.zeros((4, 13), dtype=np.float32)
 
-            # 3. MASTER TRANSLATOR (Raw -> 896-D / 128-D)
+            # 3. RAW CROP BUFFERING (Save images to RAM, don't translate yet)
+            frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            h, w = frame.shape[:2]
+
             for track_id, bbox in active_tracks.items():
                 x1, y1, x2, y2 = bbox
-                h, w = frame.shape[:2]
+                cx, cy = (x1 + x2) / 2.0, (y1 + y2) / 2.0
+                size = max(x2 - x1, y2 - y1) * 1.3 / 2.0  
                 
-                # Get the authentic features
-                visual_896d, audio_128d = master_translator(frame, bbox, audio_mfcc)
+                col_x1, col_y1 = cx - size, cy - size
+                col_x2, col_y2 = cx + size, cy + size
+                bw, bh = col_x2 - col_x1, col_y2 - col_y1
                 
-                # Normalize spatial cue
-                cx, cy = (x1 + x2) / 2.0 / w, (y1 + y2) / 2.0 / h
-                bw, bh = (x2 - x1) / w, (y2 - y1) / h
-                spatial_4d = np.array([cx, cy, bw, bh], dtype=np.float32)
+                # Math out the 7 raw crops
+                crops = {
+                    'face': get_crop(frame_gray, col_x1, col_y1, col_x2, col_y2, 112),
+                    'face_body_large': get_crop(frame_gray, col_x1 - 0.5*bw, col_y1 - 0.1*bh, col_x2 + 0.5*bw, col_y2 + 1.0*bh, 224),
+                    'face_large': get_crop(frame_gray, col_x1 - 0.05*bw, col_y1 - 0.05*bh, col_x2 + 0.05*bw, col_y1 + 0.75*bh, 112),
+                    'face_body': get_crop(frame_gray, col_x1 - 0.75*bw, col_y1, col_x2 + 0.75*bw, col_y2 + 3.0*bh, 224),
+                    'face_small': get_crop(frame_gray, col_x1 + 0.25*bw, col_y1 + 0.15*bh, col_x2 - 0.25*bw, col_y1 + 0.55*bh, 112),
+                    'face_down': get_crop(frame_gray, col_x1, col_y1 + 0.35*bh, col_x2, col_y1 + 0.60*bh, 112)
+                }
                 
+                bg_frame = frame_gray.copy()
+                cv2.rectangle(bg_frame, (int(col_x1), int(col_y1)), (int(col_x2), int(col_y2)), (0, 0, 0), thickness=cv2.FILLED)
+                crops['background'] = get_crop(bg_frame, 0, 0, w, h, 224)
+
+                norm_x1 = max(0, col_x1) / w
+                norm_y1 = max(0, col_y1) / h
+                norm_bw, norm_bh = bw / w, bh / h
+                spatial_4d = np.array([norm_x1, norm_y1, norm_bw, norm_bh], dtype=np.float32)
+
                 if track_id not in track_history:
-                    track_history[track_id] = {'v': deque(maxlen=WINDOW_SIZE), 'a': deque(maxlen=WINDOW_SIZE), 's': deque(maxlen=WINDOW_SIZE)}
+                    # We now store raw numpy arrays, not 896-D vectors
+                    track_history[track_id] = {'raw_v': {k: deque(maxlen=WINDOW_SIZE) for k in crops.keys()}, 
+                                               'a': deque(maxlen=WINDOW_SIZE), 's': deque(maxlen=WINDOW_SIZE)}
                     bbox_history[track_id] = deque(maxlen=WINDOW_SIZE)
                 
-                track_history[track_id]['v'].append(visual_896d)
-                track_history[track_id]['a'].append(audio_128d)
+                for k in crops.keys():
+                    track_history[track_id]['raw_v'][k].append(crops[k])
+                    
+                track_history[track_id]['a'].append(audio_mfcc) # audio_mfcc is shape [4, 13]
                 track_history[track_id]['s'].append(spatial_4d)
                 bbox_history[track_id].append([x1, y1, x2, y2])
 
-            # 4. CAUSAL STUDENT INFERENCE
+            # 4. MASTER TRANSLATION & CAUSAL INFERENCE
             if len(display_buffer) == WINDOW_SIZE:
-                # Get the NEWEST frame (Index -1) instead of the oldest!
                 display_frame = display_buffer[-1] 
                 
                 v_tensor = np.zeros((1, MAX_SPEAKERS, WINDOW_SIZE, 896), dtype=np.float32)
@@ -274,9 +237,19 @@ def main():
                 slot_idx = 0
                 
                 for track_id, history in track_history.items():
-                    if len(history['v']) == WINDOW_SIZE and slot_idx < MAX_SPEAKERS:
-                        v_tensor[0, slot_idx] = np.array(history['v'])
-                        a_tensor[0, slot_idx] = np.array(history['a'])
+                    if len(history['s']) == WINDOW_SIZE and slot_idx < MAX_SPEAKERS:
+                        
+                        # Stack the 50 buffered frames for all 7 cues
+                        stacked_crops = {k: np.stack(history['raw_v'][k]) for k in history['raw_v'].keys()}
+                        
+                        # Concat the audio to form [200, 13] sequence
+                        stacked_audio = np.concatenate(history['a'], axis=0)
+                        
+                        # --- THE TRUE TEMPORAL TRANSLATION ---
+                        seq_v_896, seq_a_128 = master_translator(stacked_crops, stacked_audio)
+                        
+                        v_tensor[0, slot_idx] = seq_v_896 # shape [50, 896]
+                        a_tensor[0, slot_idx] = seq_a_128 # shape [50, 128]
                         s_tensor[0, slot_idx] = np.array(history['s'])
                         m_tensor[0, slot_idx] = 1.0 
                         
@@ -290,24 +263,22 @@ def main():
                 
                 if slot_idx > 0: 
                     logits, _ = asd_model(v_t, a_t, s_t, m_t)
-                    
-                    # Read the prediction at the CURRENT frame (Index -1), not frame 0!
                     frame_probs = torch.nn.functional.softmax(logits[0, :, -1, :], dim=-1) 
                     
-                    # 5. DRAW BBOX ON SCREEN
                     for slot, track_id in speaker_mapping.items():
                         prob_speaking = frame_probs[slot, 1].item()
                         is_speaking = prob_speaking > SENSITIVITY
                         
-                        # Draw the bounding box for the NEWEST frame
+                        print(f"Frame {frame_idx} | Slot {slot} (ID {track_id}): {prob_speaking:.4f}")
+                        
                         target_bbox = bbox_history[track_id][-1] 
-                        x1, y1, x2, y2 = map(int, target_bbox)
+                        tx1, ty1, tx2, ty2 = map(int, target_bbox)
                         
                         color = (0, 255, 0) if is_speaking else (0, 0, 255)
                         label = f"ID:{track_id} Spk:{prob_speaking:.2f}" if is_speaking else f"ID:{track_id} Sil"
                         
-                        cv2.rectangle(display_frame, (x1, y1), (x2, y2), color, 3)
-                        cv2.putText(display_frame, label, (x1, max(30, y1 - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
+                        cv2.rectangle(display_frame, (tx1, ty1), (tx2, ty2), color, 3)
+                        cv2.putText(display_frame, label, (tx1, max(30, ty1 - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
 
                 cv2.imshow("HoloPi Real-Time Pipeline", display_frame)
 
