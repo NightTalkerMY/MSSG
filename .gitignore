@@ -3,13 +3,19 @@ venv/
 data/
 log/
 graphs/
+
+# Columbia directory
 colDataPath/
+
+# Proposed directory
+cached_chunks/
 val_cached_chunks/
 columbia_cached_chunks/
-cached_chunks/
-realtime_epoch/
 realtime_epoch_mse_ce/
 realtime_epoch_mse_ce_kl/
+
+# Realtime directory 
+test_video/
 
 # Ignore everything inside predata, EXCEPT pretrain_model
 predata/*
