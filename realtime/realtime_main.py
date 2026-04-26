@@ -28,8 +28,8 @@ from ASD import ASD
 # CONFIGURATION
 # ==========================================
 MODE = "FILE"  
-VIDEO_FILE = "columbia/col.mp4"
-AUDIO_FILE = "columbia/col.wav"
+VIDEO_FILE = "gay/supergay.mp4"
+AUDIO_FILE = "gay/supergay.wav"
 PRETRAIN_DIR = r"D:\FYP\MSSG\predata\pretrain_model" 
 STUDENT_WEIGHTS = r"D:\FYP\MSSG\proposed\realtime_epoch_mse_ce\holopi_student_epoch_30.pt"
 
@@ -42,7 +42,7 @@ AUDIO_SAMPLE_RATE = 16000
 SAMPLES_PER_FRAME = int(AUDIO_SAMPLE_RATE / FPS)
 
 # ==========================================
-# THE MASTER TRANSLATOR (Sequence-Based)
+# THE MASTER TRANSLATOR (Hybrid Optimized)
 # ==========================================
 class MasterTranslator(nn.Module):
     def __init__(self, pretrain_dir):
@@ -77,37 +77,33 @@ class MasterTranslator(nn.Module):
             if name == 'face':
                 self.audio_encoder = s.model.audioEncoder.to(self.device)
 
-    def forward(self, crops_dict, audio_sequence):
-        """Passes 50 frames and 200 audio chunks through the 7 CNNs."""
+    def forward_visual(self, crops_dict):
+        """Passes ONE frame through the 7 Visual CNNs."""
         visual_vectors = []
         with torch.no_grad():
             for config in self.cue_configs:
                 name = config['name']
-                # shape of crop_seq: [50, size, size]
-                crop_seq = crops_dict[name] 
+                crop = crops_dict[name] 
                 
-                # Transform to [Batch=1, Channels=1, Time=50, W=size, H=size]
-                crop_tensor = torch.FloatTensor(crop_seq).unsqueeze(0).unsqueeze(0).to(self.device)
+                crop_tensor = torch.FloatTensor(crop).unsqueeze(0).unsqueeze(0).unsqueeze(0).to(self.device)
                 crop_tensor = (crop_tensor / 255.0 - 0.4161) / 0.1688
                 
-                v_feat = self.visual_encoders[name](crop_tensor) # outputs [1, 50, 128]
-                visual_vectors.append(v_feat.squeeze(0).cpu().numpy()) # append [50, 128]
+                v_feat = self.visual_encoders[name](crop_tensor) # [1, 1, 128]
+                visual_vectors.append(v_feat.view(128).cpu().numpy()) 
                 
-            # EXTRACT AUDIO SEQUENCE
-            # audio_sequence is [200, 13] (50 frames * 4)
+        return np.concatenate(visual_vectors, axis=0) # [896]
+
+    def forward_audio(self, audio_sequence):
+        """Passes 50 FRAMES of audio through the Audio CNN sequence."""
+        with torch.no_grad():
+            # audio_sequence is [200, 13]
             a_tensor = torch.FloatTensor(audio_sequence).unsqueeze(0).to(self.device)
             a_tensor = a_tensor.unsqueeze(1).transpose(2, 3) # [1, 1, 13, 200]
-            a_feat = self.audio_encoder(a_tensor) # outputs [1, 50, 128]
+            a_feat = self.audio_encoder(a_tensor) # [1, 50, 128]
             
-        # Concat along feature dimension to get [50, 896]
-        final_v_896 = np.concatenate(visual_vectors, axis=-1)
-        final_a_128 = a_feat.squeeze(0).cpu().numpy() # [50, 128]
-        
-        return final_v_896, final_a_128
-
+        return a_feat.squeeze(0).cpu().numpy() # [50, 128]
 
 def get_crop(img_gray, x1, y1, x2, y2, size):
-    """Helper to safely slice and resize raw numpy array."""
     h, w = img_gray.shape
     x1, y1 = max(0, int(x1)), max(0, int(y1))
     x2, y2 = min(w, int(x2)), min(h, int(y2))
@@ -128,12 +124,10 @@ def main():
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
-    # Init Backend
     face_detector = S3FD(device='cuda')
-    tracker = OnlineTracker(iou_threshold=0.4, max_lost=5, alpha=0.8)
+    tracker = OnlineTracker(iou_threshold=0.4, max_lost=2, alpha=0.8)
     master_translator = MasterTranslator(PRETRAIN_DIR).to(device).eval()
     
-    # Init Student
     asd_model = CausalStudentASD().to(device)
     asd_model.load_state_dict(torch.load(STUDENT_WEIGHTS, map_location=device))
     asd_model.eval()
@@ -141,6 +135,9 @@ def main():
     track_history = {}      
     bbox_history = {}       
     display_buffer = deque(maxlen=WINDOW_SIZE) 
+    
+    # NEW: Global audio buffer! Audio is the same for everyone in the room.
+    global_audio_buffer = deque(maxlen=WINDOW_SIZE)
     
     frame_idx = 0
     print("\nStarting Real-Time Pipeline... Press 'q' to quit.")
@@ -152,11 +149,10 @@ def main():
             if frame is None: break
             display_buffer.append(frame.copy())
             
-            # 1. DETECT & TRACK
-            if frame_idx % DETECT_INTERVAL == 0:
-                img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                raw_detections = face_detector.detect_faces(img_rgb, conf_th=0.9, scales=[0.25])
-                last_detections = [det[:-1].tolist() for det in raw_detections]
+            # 1. DETECT
+            img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            raw_detections = face_detector.detect_faces(img_rgb, conf_th=0.9, scales=[0.25])
+            last_detections = [det[:-1].tolist() for det in raw_detections]
             
             active_tracks = tracker.update(last_detections)
             stale_ids = [tid for tid in track_history.keys() if tid not in active_tracks]
@@ -164,7 +160,7 @@ def main():
                 del track_history[tid]
                 del bbox_history[tid]
 
-            # 2. AUDIO PREP
+            # 2. AUDIO PREP (GLOBAL)
             if MODE == "REMOTE":
                 raw_audio = audio_client.get_latest_audio(SAMPLES_PER_FRAME)
             else:
@@ -172,14 +168,15 @@ def main():
                 
             if raw_audio is not None and len(raw_audio) > 0:
                 scaled_audio = raw_audio * 32767.0 if np.max(np.abs(raw_audio)) <= 2.0 else raw_audio
-                # We expect exactly 4 windows for a 25fps stream
                 audio_mfcc = python_speech_features.mfcc(scaled_audio, AUDIO_SAMPLE_RATE, numcep=13, winlen=0.025, winstep=0.010)
                 if audio_mfcc.shape[0] > 4: audio_mfcc = audio_mfcc[:4, :]
                 elif audio_mfcc.shape[0] < 4: audio_mfcc = np.pad(audio_mfcc, ((0, 4 - audio_mfcc.shape[0]), (0, 0)), mode='edge')
             else:
                 audio_mfcc = np.zeros((4, 13), dtype=np.float32)
+                
+            global_audio_buffer.append(audio_mfcc)
 
-            # 3. RAW CROP BUFFERING (Save images to RAM, don't translate yet)
+            # 3. INCREMENTAL VISUAL TRANSLATION (Fast)
             frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             h, w = frame.shape[:2]
 
@@ -192,7 +189,6 @@ def main():
                 col_x2, col_y2 = cx + size, cy + size
                 bw, bh = col_x2 - col_x1, col_y2 - col_y1
                 
-                # Math out the 7 raw crops
                 crops = {
                     'face': get_crop(frame_gray, col_x1, col_y1, col_x2, col_y2, 112),
                     'face_body_large': get_crop(frame_gray, col_x1 - 0.5*bw, col_y1 - 0.1*bh, col_x2 + 0.5*bw, col_y2 + 1.0*bh, 224),
@@ -206,27 +202,29 @@ def main():
                 cv2.rectangle(bg_frame, (int(col_x1), int(col_y1)), (int(col_x2), int(col_y2)), (0, 0, 0), thickness=cv2.FILLED)
                 crops['background'] = get_crop(bg_frame, 0, 0, w, h, 224)
 
+                # Fetch ONLY the visual vector incrementally
+                v_896 = master_translator.forward_visual(crops)
+
                 norm_x1 = max(0, col_x1) / w
                 norm_y1 = max(0, col_y1) / h
                 norm_bw, norm_bh = bw / w, bh / h
                 spatial_4d = np.array([norm_x1, norm_y1, norm_bw, norm_bh], dtype=np.float32)
 
                 if track_id not in track_history:
-                    # We now store raw numpy arrays, not 896-D vectors
-                    track_history[track_id] = {'raw_v': {k: deque(maxlen=WINDOW_SIZE) for k in crops.keys()}, 
-                                               'a': deque(maxlen=WINDOW_SIZE), 's': deque(maxlen=WINDOW_SIZE)}
+                    track_history[track_id] = {'v': deque(maxlen=WINDOW_SIZE), 's': deque(maxlen=WINDOW_SIZE)}
                     bbox_history[track_id] = deque(maxlen=WINDOW_SIZE)
                 
-                for k in crops.keys():
-                    track_history[track_id]['raw_v'][k].append(crops[k])
-                    
-                track_history[track_id]['a'].append(audio_mfcc) # audio_mfcc is shape [4, 13]
+                track_history[track_id]['v'].append(v_896)
                 track_history[track_id]['s'].append(spatial_4d)
                 bbox_history[track_id].append([x1, y1, x2, y2])
 
-            # 4. MASTER TRANSLATION & CAUSAL INFERENCE
+            # 4. LIGHTWEIGHT CAUSAL INFERENCE
             if len(display_buffer) == WINDOW_SIZE:
                 display_frame = display_buffer[-1] 
+                
+                # Extract Audio Sequence ONCE globally!
+                stacked_audio = np.concatenate(list(global_audio_buffer), axis=0) # [200, 13]
+                seq_a_128 = master_translator.forward_audio(stacked_audio) # [50, 128]
                 
                 v_tensor = np.zeros((1, MAX_SPEAKERS, WINDOW_SIZE, 896), dtype=np.float32)
                 a_tensor = np.zeros((1, MAX_SPEAKERS, WINDOW_SIZE, 128), dtype=np.float32)
@@ -237,19 +235,10 @@ def main():
                 slot_idx = 0
                 
                 for track_id, history in track_history.items():
-                    if len(history['s']) == WINDOW_SIZE and slot_idx < MAX_SPEAKERS:
+                    if len(history['v']) == WINDOW_SIZE and slot_idx < MAX_SPEAKERS:
                         
-                        # Stack the 50 buffered frames for all 7 cues
-                        stacked_crops = {k: np.stack(history['raw_v'][k]) for k in history['raw_v'].keys()}
-                        
-                        # Concat the audio to form [200, 13] sequence
-                        stacked_audio = np.concatenate(history['a'], axis=0)
-                        
-                        # --- THE TRUE TEMPORAL TRANSLATION ---
-                        seq_v_896, seq_a_128 = master_translator(stacked_crops, stacked_audio)
-                        
-                        v_tensor[0, slot_idx] = seq_v_896 # shape [50, 896]
-                        a_tensor[0, slot_idx] = seq_a_128 # shape [50, 128]
+                        v_tensor[0, slot_idx] = np.array(history['v'])
+                        a_tensor[0, slot_idx] = seq_a_128 # The exact same audio for all speakers
                         s_tensor[0, slot_idx] = np.array(history['s'])
                         m_tensor[0, slot_idx] = 1.0 
                         
@@ -268,8 +257,6 @@ def main():
                     for slot, track_id in speaker_mapping.items():
                         prob_speaking = frame_probs[slot, 1].item()
                         is_speaking = prob_speaking > SENSITIVITY
-                        
-                        print(f"Frame {frame_idx} | Slot {slot} (ID {track_id}): {prob_speaking:.4f}")
                         
                         target_bbox = bbox_history[track_id][-1] 
                         tx1, ty1, tx2, ty2 = map(int, target_bbox)
