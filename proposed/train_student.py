@@ -11,39 +11,6 @@ from tqdm import tqdm
 
 from student_model import CausalStudentASD
 
-# --- 1. THE CHUNKED DATALOADER ---
-# class ChunkedHoloPiDataset(Dataset):
-#     def __init__(self, cache_dir):
-#         self.files = sorted(glob.glob(os.path.join(cache_dir, "train_cache_part_*.pt")))
-#         print(f"Found {len(self.files)} cache files.")
-        
-#         self.data_map = []
-#         for file_idx, f_path in enumerate(self.files):
-#             v_shape = torch.load(f_path, map_location='cpu')['l'].shape[0] 
-#             for local_idx in range(v_shape):
-#                 self.data_map.append((f_path, local_idx))
-                
-#         self.current_file_path = None
-#         self.current_data = None
-
-#     def __len__(self):
-#         return len(self.data_map)
-
-#     def __getitem__(self, idx):
-#         file_path, local_idx = self.data_map[idx]
-        
-#         if self.current_file_path != file_path:
-#             self.current_data = torch.load(file_path, map_location='cpu')
-#             self.current_file_path = file_path
-            
-#         return (
-#             self.current_data['v'][local_idx],
-#             self.current_data['a'][local_idx],
-#             self.current_data['t'][local_idx], 
-#             self.current_data['s'][local_idx],
-#             self.current_data['l'][local_idx],
-#             self.current_data['m'][local_idx]
-#         )
 class ChunkedHoloPiIterableDataset(IterableDataset):
     """
     Loads one chunk file at a time, shuffles internally, and feeds the GPU.
