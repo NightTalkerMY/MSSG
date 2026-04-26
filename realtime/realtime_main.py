@@ -23,8 +23,8 @@ from ASD import ASD
 # CONFIGURATION
 # ==========================================
 MODE = "FILE"  
-VIDEO_FILE = "gay/col.mp4"
-AUDIO_FILE = "gay/col.wav"
+VIDEO_FILE = "columbia/col.mp4"
+AUDIO_FILE = "columbia/col.wav"
 PRETRAIN_DIR = r"D:\FYP\MSSG\predata\pretrain_model" 
 STUDENT_WEIGHTS = r"D:\FYP\MSSG\proposed\realtime_epoch_mse_ce\holopi_student_epoch_30.pt"
 
@@ -171,7 +171,7 @@ def main():
                 del bbox_history[tid]
                 if tid in ai_state_cache: del ai_state_cache[tid]
 
-            # 2. RAW AUDIO PREP (FRAME-BY-FRAME ALIGNMENT)
+            # 2. RAW AUDIO PREP
             if MODE == "REMOTE":
                 raw_audio = audio_client.get_latest_audio(SAMPLES_PER_FRAME)
             else:
@@ -180,13 +180,9 @@ def main():
             if raw_audio is None or len(raw_audio) == 0:
                 raw_audio = np.zeros(SAMPLES_PER_FRAME, dtype=np.float32)
             
-            # --- THE AUDIO FIX: Exact 4-window extraction PER FRAME ---
-            scaled_audio = raw_audio * 32767.0 if np.max(np.abs(raw_audio)) <= 2.0 else raw_audio
-            audio_mfcc = python_speech_features.mfcc(scaled_audio, AUDIO_SAMPLE_RATE, numcep=13, winlen=0.025, winstep=0.010)
-            if audio_mfcc.shape[0] > 4: audio_mfcc = audio_mfcc[:4, :]
-            elif audio_mfcc.shape[0] < 4: audio_mfcc = np.pad(audio_mfcc, ((0, 4 - audio_mfcc.shape[0]), (0, 0)), mode='edge')
-                
-            global_audio_buffer.append(audio_mfcc) # Append [4, 13] perfectly every frame
+            # --- STORE RAW WAVE, NOT MFCC ---
+            # We must buffer the continuous wave to prevent audio stuttering
+            global_audio_buffer.append(raw_audio)
 
             # 3. VISUAL CROP BUFFERING
             frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -197,7 +193,7 @@ def main():
                 
                 # --- S3FD to AVA Box Expansion ---
                 cx, cy = (x1 + x2) / 2.0, (y1 + y2) / 2.0
-                size = max(x2 - x1, y2 - y1) * 1.3 / 2.0  
+                size = max(x2 - x1, y2 - y1) * 2.2 / 2.0  
                 
                 col_x1, col_y1 = cx - size, cy - size
                 col_x2, col_y2 = cx + size, cy + size
@@ -235,9 +231,18 @@ def main():
             # 4. HEAVY INFERENCE (ONLY EVERY 4 FRAMES)
             if len(display_buffer) == WINDOW_SIZE and frame_idx % INFERENCE_INTERVAL == 0:
                 
-                # Combine the exact 4-window chunks into a perfect [200, 13] array
-                perfect_audio_seq = np.concatenate(list(global_audio_buffer), axis=0)
-                seq_a_128 = master_translator.forward_audio(perfect_audio_seq)
+                # --- THE TRUE AUDIO FIX ---
+                # Combine the raw audio into a perfect 2-second continuous wave first
+                continuous_raw_audio = np.concatenate(list(global_audio_buffer), axis=0)
+                scaled_audio = continuous_raw_audio * 32767.0 if np.max(np.abs(continuous_raw_audio)) <= 2.0 else continuous_raw_audio
+                
+                # Run MFCC on the 2-second wave. This creates ~198 perfectly smooth, stepping windows!
+                audio_mfcc = python_speech_features.mfcc(scaled_audio, AUDIO_SAMPLE_RATE, numcep=13, winlen=0.025, winstep=0.010)
+                
+                if audio_mfcc.shape[0] > 200: audio_mfcc = audio_mfcc[:200, :]
+                elif audio_mfcc.shape[0] < 200: audio_mfcc = np.pad(audio_mfcc, ((0, 200 - audio_mfcc.shape[0]), (0, 0)), mode='edge')
+                
+                seq_a_128 = master_translator.forward_audio(audio_mfcc)
                 
                 v_tensor = np.zeros((1, MAX_SPEAKERS, WINDOW_SIZE, 896), dtype=np.float32)
                 a_tensor = np.zeros((1, MAX_SPEAKERS, WINDOW_SIZE, 128), dtype=np.float32)
