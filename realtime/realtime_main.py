@@ -1,6 +1,7 @@
 import os
 import cv2
 import time
+import threading
 import torch
 import torch.nn as nn
 import numpy as np
@@ -23,8 +24,8 @@ from ASD import ASD
 # CONFIGURATION
 # ==========================================
 MODE = "FILE"  
-VIDEO_FILE = "test_video/gay/supergay.mp4"
-AUDIO_FILE = "test_video/gay/supergay.wav"
+VIDEO_FILE = "test_video/columbia/col.mp4"
+AUDIO_FILE = "test_video/columbia/col.wav"
 PRETRAIN_DIR = r"D:\FYP\MSSG\predata\pretrain_model" 
 STUDENT_WEIGHTS = r"D:\FYP\MSSG\realtime\realtime_epoch\holopi_student_best.pt"
 
@@ -146,11 +147,75 @@ def main():
     global_audio_buffer = deque(maxlen=WINDOW_SIZE)
     
     # State cache to hold predictions between PyTorch firings
-    ai_state_cache = {} 
-    
+    ai_state_cache = {}
+
+    # --- Background inference thread (decouples GPU work from display) ---
+    pending_snapshot = [None]
+    snapshot_lock = threading.Lock()
+    stop_event = threading.Event()
+
+    def inference_worker():
+        while not stop_event.is_set():
+            with snapshot_lock:
+                snap = pending_snapshot[0]
+                pending_snapshot[0] = None
+
+            if snap is None:
+                time.sleep(0.005)
+                continue
+
+            audio_data = snap['audio']
+            tracks = snap['tracks']
+
+            continuous_raw_audio = np.concatenate(audio_data, axis=0)
+            scaled_audio = continuous_raw_audio * 32767.0 if np.max(np.abs(continuous_raw_audio)) <= 2.0 else continuous_raw_audio
+            audio_mfcc = python_speech_features.mfcc(scaled_audio, AUDIO_SAMPLE_RATE, numcep=13, winlen=0.025, winstep=0.010)
+            if audio_mfcc.shape[0] > 200: audio_mfcc = audio_mfcc[:200, :]
+            elif audio_mfcc.shape[0] < 200: audio_mfcc = np.pad(audio_mfcc, ((0, 200 - audio_mfcc.shape[0]), (0, 0)), mode='edge')
+
+            seq_a_128 = master_translator.forward_audio(audio_mfcc)
+
+            v_tensor = np.zeros((1, MAX_SPEAKERS, WINDOW_SIZE, 896), dtype=np.float32)
+            a_tensor = np.zeros((1, MAX_SPEAKERS, WINDOW_SIZE, 128), dtype=np.float32)
+            s_tensor = np.zeros((1, MAX_SPEAKERS, WINDOW_SIZE, 4), dtype=np.float32)
+            m_tensor = np.zeros((1, MAX_SPEAKERS, WINDOW_SIZE), dtype=np.float32)
+
+            speaker_mapping = {}
+            slot_idx = 0
+
+            for track_id, track_data in tracks.items():
+                if slot_idx >= MAX_SPEAKERS:
+                    break
+                stacked_crops = {k: np.stack(track_data['raw_v'][k]) for k in track_data['raw_v'].keys()}
+                seq_v_896 = master_translator.forward_visual(stacked_crops)
+
+                v_tensor[0, slot_idx] = seq_v_896
+                a_tensor[0, slot_idx] = seq_a_128
+                s_tensor[0, slot_idx] = np.array(track_data['s'])
+                m_tensor[0, slot_idx] = 1.0
+
+                speaker_mapping[slot_idx] = track_id
+                slot_idx += 1
+
+            if slot_idx > 0:
+                with torch.no_grad():
+                    v_t = torch.FloatTensor(v_tensor).to(device)
+                    a_t = torch.FloatTensor(a_tensor).to(device)
+                    s_t = torch.FloatTensor(s_tensor).to(device)
+                    m_t = torch.FloatTensor(m_tensor).to(device)
+
+                    logits, _ = asd_model(v_t, a_t, s_t, m_t)
+                    frame_probs = torch.nn.functional.softmax(logits[0, :, -1, :], dim=-1)
+
+                for slot, tid in speaker_mapping.items():
+                    ai_state_cache[tid] = frame_probs[slot, 1].item()
+
+    inference_thread = threading.Thread(target=inference_worker, daemon=True)
+    inference_thread.start()
+
     frame_idx = 0
     print("\nStarting Real-Time Pipeline... Press 'q' to quit.")
-    video_start_time = None 
+    video_start_time = None
 
     with torch.no_grad():
         while True:
@@ -241,59 +306,18 @@ def main():
                 track_history[track_id]['s'].append(spatial_4d)
                 bbox_history[track_id].append([x1, y1, x2, y2])
 
-            # 4. HEAVY INFERENCE (ONLY EVERY 4 FRAMES)
+            # 4. SUBMIT INFERENCE TO BACKGROUND THREAD (NON-BLOCKING)
             if len(display_buffer) == WINDOW_SIZE and frame_idx % INFERENCE_INTERVAL == 0:
-                
-                # --- THE TRUE AUDIO FIX ---
-                # Combine the raw audio into a perfect 2-second continuous wave first
-                continuous_raw_audio = np.concatenate(list(global_audio_buffer), axis=0)
-                scaled_audio = continuous_raw_audio * 32767.0 if np.max(np.abs(continuous_raw_audio)) <= 2.0 else continuous_raw_audio
-                
-                # Run MFCC on the 2-second wave. This creates ~198 perfectly smooth, stepping windows!
-                audio_mfcc = python_speech_features.mfcc(scaled_audio, AUDIO_SAMPLE_RATE, numcep=13, winlen=0.025, winstep=0.010)
-                
-                if audio_mfcc.shape[0] > 200: audio_mfcc = audio_mfcc[:200, :]
-                elif audio_mfcc.shape[0] < 200: audio_mfcc = np.pad(audio_mfcc, ((0, 200 - audio_mfcc.shape[0]), (0, 0)), mode='edge')
-                
-                seq_a_128 = master_translator.forward_audio(audio_mfcc)
-                
-                v_tensor = np.zeros((1, MAX_SPEAKERS, WINDOW_SIZE, 896), dtype=np.float32)
-                a_tensor = np.zeros((1, MAX_SPEAKERS, WINDOW_SIZE, 128), dtype=np.float32)
-                s_tensor = np.zeros((1, MAX_SPEAKERS, WINDOW_SIZE, 4), dtype=np.float32)
-                m_tensor = np.zeros((1, MAX_SPEAKERS, WINDOW_SIZE), dtype=np.float32)
-                
-                speaker_mapping = {} 
-                slot_idx = 0
-                
+                snap = {'audio': list(global_audio_buffer), 'tracks': {}}
                 for track_id, history in track_history.items():
-                    if len(history['s']) == WINDOW_SIZE and slot_idx < MAX_SPEAKERS:
-                        
-                        stacked_crops = {k: np.stack(history['raw_v'][k]) for k in history['raw_v'].keys()}
-                        seq_v_896 = master_translator.forward_visual(stacked_crops)
-                        
-                        v_tensor[0, slot_idx] = seq_v_896 
-                        a_tensor[0, slot_idx] = seq_a_128 
-                        s_tensor[0, slot_idx] = np.array(history['s'])
-                        m_tensor[0, slot_idx] = 1.0 
-                        
-                        speaker_mapping[slot_idx] = track_id
-                        slot_idx += 1
-                        
-                if slot_idx > 0: 
-                    v_t = torch.FloatTensor(v_tensor).to(device)
-                    a_t = torch.FloatTensor(a_tensor).to(device)
-                    s_t = torch.FloatTensor(s_tensor).to(device)
-                    m_t = torch.FloatTensor(m_tensor).to(device)
-                    
-                    logits, _ = asd_model(v_t, a_t, s_t, m_t)
-                    frame_probs = torch.nn.functional.softmax(logits[0, :, -1, :], dim=-1) 
-                    
-                    # Update State Cache
-                    for slot, track_id in speaker_mapping.items():
-                        prob_speaking = frame_probs[slot, 1].item()
-                        ai_state_cache[track_id] = prob_speaking
-                        # Debug Print - Watch this spike!
-                        # print(f"Frame {frame_idx} | Slot {slot} (ID {track_id}): {prob_speaking:.4f}")
+                    if len(history['s']) == WINDOW_SIZE:
+                        snap['tracks'][track_id] = {
+                            'raw_v': {k: list(history['raw_v'][k]) for k in history['raw_v']},
+                            's': list(history['s'])
+                        }
+                if snap['tracks']:
+                    with snapshot_lock:
+                        pending_snapshot[0] = snap
 
             # 5. SMOOTH ASYNCHRONOUS DRAWING (EVERY FRAME)
             if len(display_buffer) == WINDOW_SIZE:
@@ -327,6 +351,8 @@ def main():
 
             frame_idx += 1
 
+    stop_event.set()
+    inference_thread.join(timeout=2)
     video_client.close()
     audio_client.close()
     cv2.destroyAllWindows()
