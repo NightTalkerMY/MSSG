@@ -24,8 +24,8 @@ from ASD import ASD
 # CONFIGURATION
 # ==========================================
 MODE = "FILE"  
-VIDEO_FILE = "test_video/columbia/col.mp4"
-AUDIO_FILE = "test_video/columbia/col.wav"
+VIDEO_FILE = "test_video/supergay/supergay.mp4"
+AUDIO_FILE = "test_video/supergay/supergay.wav"
 PRETRAIN_DIR = r"D:\FYP\MSSG\predata\pretrain_model" 
 STUDENT_WEIGHTS = r"D:\FYP\MSSG\realtime\realtime_epoch\holopi_student_best.pt"
 
@@ -208,7 +208,9 @@ def main():
                     frame_probs = torch.nn.functional.softmax(logits[0, :, -1, :], dim=-1)
 
                 for slot, tid in speaker_mapping.items():
-                    ai_state_cache[tid] = frame_probs[slot, 1].item()
+                    new_prob = frame_probs[slot, 1].item()
+                    old_prob = ai_state_cache.get(tid, new_prob)
+                    ai_state_cache[tid] = 0.4 * new_prob + 0.6 * old_prob
 
     inference_thread = threading.Thread(target=inference_worker, daemon=True)
     inference_thread.start()
