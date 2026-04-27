@@ -100,25 +100,29 @@ class CausalStudentASD(nn.Module):
         # Step 3: Sequence Processing (Process each speaker's timeline independently)
         # Reshape to [B * S, T, 128] so the GRU processes 5 timelines in parallel
         x_seq = x.view(B * S, T, 128)
-        
+
         gru_out, _ = self.gru(x_seq) # gru_out: [B * S, T, 128]
-        
+
         # Step 4: Buffer Attention with Strict Causal Mask
         # The mask forces the attention layer to ignore future frames
         causal_mask = torch.triu(torch.ones(T, T) * float('-inf'), diagonal=1).to(v.device)
-        
+
         attn_out, _ = self.mha(gru_out, gru_out, gru_out, attn_mask=causal_mask)
         seq_features = self.layer_norm(gru_out + attn_out) # Residual connection
-        
+
         # Reshape back to the scene matrix
         seq_features = seq_features.view(B, S, T, 128)
+
+        # Zero out ghost speaker outputs so GRU artifacts don't leak into the graph
+        seq_features = seq_features * mask.unsqueeze(-1)  # mask: [B,S,T] → [B,S,T,1]
         
         # Step 5: Inter/Intra Speaker Graph Routing
         # This is where the student mimics the Teacher's MSSG behavior
         graph_features = self.causal_graph(seq_features, mask)
-        
+
         # Step 6: Classification
         logits = self.classifier(graph_features) # [B, S, T, 2]
-        
-        # We return both the logits (for Cross-Entropy) and the intermediate features (for KD MSE Loss)
-        return logits, graph_features
+
+        # Return logits (for CE) and pre-graph features (for KD MSE against teacher_av,
+        # which is also a pre-graph representation from the teacher's BiGRU output)
+        return logits, seq_features

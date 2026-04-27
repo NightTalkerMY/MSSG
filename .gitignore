@@ -16,6 +16,7 @@ realtime_epoch_mse_ce_kl/
 
 # Realtime directory 
 test_video/
+realtime_epoch/
 
 # Ignore everything inside predata, EXCEPT pretrain_model
 predata/*

@@ -7,6 +7,8 @@ import torch.optim as optim
 import random
 from torch.utils.data import IterableDataset
 from torch.utils.data import Dataset, DataLoader
+from torch.optim.lr_scheduler import CosineAnnealingLR
+from sklearn.metrics import average_precision_score
 from tqdm import tqdm
 
 from student_model import CausalStudentASD
@@ -110,78 +112,150 @@ class TeacherLogitSimulator(nn.Module):
     def forward(self, t_features):
         return self.mock_classifier(t_features)
 
-# --- 4. THE TRAINING LOOP ---
+# --- 4. VALIDATION DATASET (mirrors train but reads val_cache files without shuffling) ---
+class ValChunkedIterableDataset(IterableDataset):
+    def __init__(self, cache_dir):
+        self.files = sorted(glob.glob(os.path.join(cache_dir, "val_cache_part_*.pt")))
+        print(f"Found {len(self.files)} val cache files.")
+
+    def __iter__(self):
+        for f_path in self.files:
+            data = torch.load(f_path, map_location='cpu')
+            num_items = data['l'].shape[0]
+            for idx in range(num_items):
+                yield (
+                    data['v'][idx], data['a'][idx], data['t'][idx],
+                    data['s'][idx], data['l'][idx], data['m'][idx]
+                )
+
+# --- 5. THE TRAINING LOOP ---
 def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Training on: {device}")
-    
+
     # --- TOGGLE YOUR MODE HERE ---
-    TRAINING_MODE = 'ce_mse_kl' # Switch to 'ce_mse' to disable KL Divergence
-    
+    TRAINING_MODE = 'ce_mse' # KL disabled: TeacherLogitSimulator is a random Linear, not a real teacher
+
     cache_dir = r"D:\FYP\MSSG\realtime\cached_chunks"
-    # dataset = ChunkedHoloPiDataset(cache_dir)
-    # train_loader = DataLoader(dataset, batch_size=16, shuffle=True, num_workers=0)
+    val_cache_dir = r"D:\FYP\MSSG\realtime\val_cached_chunks"
+
     dataset = ChunkedHoloPiIterableDataset(cache_dir)
     train_loader = DataLoader(dataset, batch_size=16, num_workers=0)
-    
+
+    val_dataset = ValChunkedIterableDataset(val_cache_dir)
+    val_loader = DataLoader(val_dataset, batch_size=32, num_workers=0)
+
     model = CausalStudentASD().to(device)
     teacher_sim = TeacherLogitSimulator().to(device)
-    
-    # If mode is ce_mse_kl: 40% CE, 30% MSE, 30% KL
-    criterion = KDLoss(mode=TRAINING_MODE, alpha=0.4, beta=0.3, temperature=3.0) 
+
+    criterion = KDLoss(mode=TRAINING_MODE, alpha=0.4, beta=0.3, temperature=3.0)
     optimizer = optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-4)
-    
+    scheduler = CosineAnnealingLR(optimizer, T_max=30)
+
     num_epochs = 30
-    
+    save_dir = r"D:\FYP\MSSG\realtime\realtime_epoch"
+    os.makedirs(save_dir, exist_ok=True)
+
+    best_mAP = 0.0
+
+    # --- Result logging ---
+    log_path = os.path.join(save_dir, "training_log.csv")
+    with open(log_path, 'w') as f:
+        f.write("epoch,avg_loss,avg_ce,avg_mse,avg_kl,lr,val_mAP\n")
+
     for epoch in range(num_epochs):
+        # ========== TRAIN ==========
         model.train()
         total_loss, total_ce, total_mse, total_kl = 0.0, 0.0, 0.0, 0.0
-        
-        num_batches = 0 # 1. ADD THIS COUNTER
-        
+        num_batches = 0
+
         pbar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs}")
-        
+
         for v, a, t, s, l, m in pbar:
             v, a, t = v.to(device), a.to(device), t.to(device)
             s, l, m = s.to(device), l.to(device), m.to(device)
-            
+
             optimizer.zero_grad()
-            
+
             t_logits = teacher_sim(t) if TRAINING_MODE == 'ce_mse_kl' else None
             student_logits, student_features = model(v, a, s, m)
-            
+
             loss, loss_ce, loss_mse, loss_kl = criterion(
                 student_logits, student_features, t, t_logits, l, m
             )
-            
+
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
-            
+
             total_loss += loss.item()
             total_ce += loss_ce.item()
             total_mse += loss_mse.item()
             total_kl += loss_kl.item()
-            
-            num_batches += 1 # 2. INCREMENT THE COUNTER HERE
-            
+            num_batches += 1
+
             metrics = {
-                'Tot': f"{loss.item():.3f}", 
-                'CE': f"{loss_ce.item():.3f}", 
+                'Tot': f"{loss.item():.3f}",
+                'CE': f"{loss_ce.item():.3f}",
                 'MSE': f"{loss_mse.item():.3f}"
             }
             if TRAINING_MODE == 'ce_mse_kl':
                 metrics['KL'] = f"{loss_kl.item():.3f}"
-                
             pbar.set_postfix(metrics)
-            
-        # 3. DIVIDE BY OUR COUNTER INSTEAD OF len(train_loader)
-        avg_loss = total_loss / num_batches 
-        print(f"Epoch {epoch+1} Completed. Avg Total Loss: {avg_loss:.4f}")
-        
-        save_path = f"D:\\FYP\\MSSG\\realtime\\realtime_epoch\\holopi_student_epoch_{epoch+1}.pt"
+
+        scheduler.step()
+        avg_loss = total_loss / num_batches
+        print(f"Epoch {epoch+1} Completed. Avg Loss: {avg_loss:.4f} | LR: {scheduler.get_last_lr()[0]:.6f}")
+
+        # ========== VALIDATE (mAP) ==========
+        model.eval()
+        all_scores, all_labels = [], []
+
+        with torch.no_grad():
+            for v, a, t, s, l, m in tqdm(val_loader, desc="Validating"):
+                v, a, s, m = v.to(device), a.to(device), s.to(device), m.to(device)
+                l = l.to(device)
+
+                student_logits, _ = model(v, a, s, m)
+
+                flat_mask = m.view(-1)
+                valid = flat_mask > 0.5
+
+                valid_logits = student_logits.view(-1, 2)[valid]
+                valid_labels = l.view(-1)[valid]
+
+                scores = F.softmax(valid_logits, dim=-1)[:, 1]
+                all_scores.extend(scores.cpu().tolist())
+                all_labels.extend(valid_labels.cpu().tolist())
+
+        if len(all_labels) > 0:
+            mAP = average_precision_score(all_labels, all_scores) * 100
+            print(f"  Val mAP: {mAP:.2f}%")
+        else:
+            mAP = 0.0
+            print("  WARNING: No valid val samples found.")
+
+        # Log metrics to CSV
+        avg_ce = total_ce / num_batches
+        avg_mse = total_mse / num_batches
+        avg_kl = total_kl / num_batches
+        lr = scheduler.get_last_lr()[0]
+        with open(log_path, 'a') as f:
+            f.write(f"{epoch+1},{avg_loss:.6f},{avg_ce:.6f},{avg_mse:.6f},{avg_kl:.6f},{lr:.8f},{mAP:.4f}\n")
+
+        # Save every epoch
+        save_path = os.path.join(save_dir, f"holopi_student_epoch_{epoch+1}.pt")
         torch.save(model.state_dict(), save_path)
-        print(f"Checkpoint saved to {save_path}")
+
+        # Track best model
+        if mAP > best_mAP:
+            best_mAP = mAP
+            best_path = os.path.join(save_dir, "holopi_student_best.pt")
+            torch.save(model.state_dict(), best_path)
+            print(f"  New best model! mAP={best_mAP:.2f}% saved to {best_path}")
+
+    print(f"\nTraining complete. Best val mAP: {best_mAP:.2f}%")
+    print(f"Training log saved to: {log_path}")
 
 if __name__ == '__main__':
     main()

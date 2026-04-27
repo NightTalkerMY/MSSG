@@ -1,11 +1,13 @@
 import os
 import glob
+import json
 import torch
 import numpy as np
 import torch.nn.functional as F
 from torch.utils.data import IterableDataset, DataLoader
 from sklearn.metrics import average_precision_score, precision_recall_curve
 from tqdm import tqdm
+from datetime import datetime
 
 from student_model import CausalStudentASD
 
@@ -35,7 +37,7 @@ def main():
     val_loader = DataLoader(dataset, batch_size=1, num_workers=0)
     
     model = CausalStudentASD().to(device)
-    weights_path = r"D:\FYP\MSSG\realtime\realtime_epoch_mse_ce\holopi_student_epoch_30.pt"
+    weights_path = r"D:\FYP\MSSG\realtime\realtime_epoch\holopi_student_best.pt"
     model.load_state_dict(torch.load(weights_path, map_location=device))
     model.eval() 
     
@@ -99,9 +101,32 @@ def main():
         
         print(f"{speaker:<15} | {sp_map:<15.2f} | {best_f1:<15.2f}")
         
+    avg_map = float(np.mean(map_list))
+    avg_f1 = float(np.mean(f1_list))
     print("-" * 50)
-    print(f"{'AVERAGE':<15} | {np.mean(map_list):<15.2f} | {np.mean(f1_list):<15.2f}")
+    print(f"{'AVERAGE':<15} | {avg_map:<15.2f} | {avg_f1:<15.2f}")
     print("="*50 + "\n")
+
+    # Save result
+    result = {
+        "dataset": "Columbia",
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "weights": weights_path,
+        "avg_mAP": round(avg_map, 4),
+        "avg_F1": round(avg_f1, 4),
+        "per_speaker": {}
+    }
+    for i, speaker in enumerate(sorted(speaker_preds.keys())):
+        result["per_speaker"][speaker] = {
+            "mAP": round(map_list[i], 4),
+            "F1": round(f1_list[i], 4),
+            "num_samples": len(speaker_preds[speaker])
+        }
+
+    result_path = r"D:\FYP\MSSG\realtime\realtime_epoch\eval_columbia_result.json"
+    with open(result_path, 'w') as f:
+        json.dump(result, f, indent=2)
+    print(f"Result saved to: {result_path}")
 
 if __name__ == '__main__':
     main()

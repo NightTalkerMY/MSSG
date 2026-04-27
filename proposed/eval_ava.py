@@ -1,10 +1,12 @@
 import os
 import glob
+import json
 import torch
 import torch.nn.functional as F
 from torch.utils.data import IterableDataset, DataLoader
 from sklearn.metrics import average_precision_score
 from tqdm import tqdm
+from datetime import datetime
 
 from student_model import CausalStudentASD
 
@@ -42,7 +44,7 @@ def main():
     
     # 2. Initialize Model & Load Epoch 30 Weights
     model = CausalStudentASD().to(device)
-    weights_path = r"D:\FYP\MSSG\realtime\realtime_epoch_mse_ce\holopi_student_epoch_30.pt"
+    weights_path = r"D:\FYP\MSSG\realtime\realtime_epoch\holopi_student_best.pt"
     print(f"Loading weights from: {weights_path}")
     
     # Use weights_only=True for security and future compatibility
@@ -81,8 +83,21 @@ def main():
     if len(target_total) == 0:
         print("ERROR: No valid targets found. Check your mask/padding logic.")
     else:
-        mAP = average_precision_score(target_total, soft_total) * 100  
+        mAP = average_precision_score(target_total, soft_total) * 100
         print(f"FINAL AVA mAP SCORE: {mAP:.3f}%")
+
+        # Save result
+        result = {
+            "dataset": "AVA",
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "weights": weights_path,
+            "mAP": round(mAP, 4),
+            "num_samples": len(target_total),
+        }
+        result_path = r"D:\FYP\MSSG\realtime\realtime_epoch\eval_ava_result.json"
+        with open(result_path, 'w') as f:
+            json.dump(result, f, indent=2)
+        print(f"Result saved to: {result_path}")
     print("="*50)
 
 if __name__ == '__main__':

@@ -23,10 +23,10 @@ from ASD import ASD
 # CONFIGURATION
 # ==========================================
 MODE = "FILE"  
-VIDEO_FILE = "columbia/col.mp4"
-AUDIO_FILE = "columbia/col.wav"
+VIDEO_FILE = "test_video/gay/supergay.mp4"
+AUDIO_FILE = "test_video/gay/supergay.wav"
 PRETRAIN_DIR = r"D:\FYP\MSSG\predata\pretrain_model" 
-STUDENT_WEIGHTS = r"D:\FYP\MSSG\proposed\realtime_epoch_mse_ce\holopi_student_epoch_30.pt"
+STUDENT_WEIGHTS = r"D:\FYP\MSSG\realtime\realtime_epoch\holopi_student_best.pt"
 
 # --- FIX 1: DYNAMIC FPS MATH ---
 cap = cv2.VideoCapture(VIDEO_FILE)
@@ -36,7 +36,7 @@ print(f"Detected exact video FPS: {ACTUAL_FPS:.2f}")
 
 SENSITIVITY = 0.5    
 DETECT_INTERVAL = 1    # FIX 2: Detect EVERY frame to prevent ID swapping/hallucinations
-INFERENCE_INTERVAL = 4 
+INFERENCE_INTERVAL = 2
 WINDOW_SIZE = 50       
 MAX_SPEAKERS = 5       
 AUDIO_SAMPLE_RATE = 16000
@@ -131,7 +131,7 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
     face_detector = S3FD(device='cuda')
-    tracker = OnlineTracker(iou_threshold=0.4, max_lost=2, alpha=0.8)
+    tracker = OnlineTracker(iou_threshold=0.4, max_lost=10, alpha=0.8)
     master_translator = MasterTranslator(PRETRAIN_DIR).to(device).eval()
     
     asd_model = CausalStudentASD().to(device)
@@ -190,32 +190,45 @@ def main():
 
             for track_id, bbox in active_tracks.items():
                 x1, y1, x2, y2 = bbox
-                
-                # --- S3FD to AVA Box Expansion ---
+
+                # --- S3FD to AVA-style face box ---
+                # S3FD gives a tight face detection. AVA GT boxes are also tight
+                # rectangular face boxes. We add small padding (1.2x) to approximate
+                # the AVA box, but keep the RECTANGULAR aspect ratio — NOT a square.
+                # The prepare_*.py crop offsets are all relative to this base box.
                 cx, cy = (x1 + x2) / 2.0, (y1 + y2) / 2.0
-                size = max(x2 - x1, y2 - y1) * 2.2 / 2.0  
-                
-                col_x1, col_y1 = cx - size, cy - size
-                col_x2, col_y2 = cx + size, cy + size
-                bw, bh = col_x2 - col_x1, col_y2 - col_y1
-                
+                bw, bh = (x2 - x1) * 1.2, (y2 - y1) * 1.2  # 20% padding, keep aspect ratio
+
+                col_x1 = cx - bw / 2.0
+                col_y1 = cy - bh / 2.0
+                col_x2 = cx + bw / 2.0
+                col_y2 = cy + bh / 2.0
+                fw, fh = bw, bh  # face box width/height (rectangular, NOT square)
+
+                # Crop offsets match prepare_*.py exactly:
+                # face: direct face box (prepare uses GT box as-is)
+                # face_large: ±0.25 all sides (prepare_largeface.py L59-66)
+                # face_body: x ±0.75*fw, y1 unchanged, y2 +3*fh (prepare_facebody.py L59-66)
+                # face_body_large: x ±1.1*fw, y1 -0.5*fw(!), y2 +3*fh (prepare_facebody_large.py L70-77)
+                # face_small: x +0.25/-0.25, y +0.4/-0.1 (prepare_smallface.py L59-62)
+                # face_down: bottom half of face crop (prepare_halfface.py L30)
                 crops = {
                     'face': get_crop(frame_gray, col_x1, col_y1, col_x2, col_y2, 112),
-                    'face_body_large': get_crop(frame_gray, col_x1 - 0.5*bw, col_y1 - 0.1*bh, col_x2 + 0.5*bw, col_y2 + 1.0*bh, 224),
-                    'face_large': get_crop(frame_gray, col_x1 - 0.05*bw, col_y1 - 0.05*bh, col_x2 + 0.05*bw, col_y1 + 0.75*bh, 112),
-                    'face_body': get_crop(frame_gray, col_x1 - 0.75*bw, col_y1, col_x2 + 0.75*bw, col_y2 + 3.0*bh, 224),
-                    'face_small': get_crop(frame_gray, col_x1 + 0.25*bw, col_y1 + 0.15*bh, col_x2 - 0.25*bw, col_y1 + 0.55*bh, 112),
-                    'face_down': get_crop(frame_gray, col_x1, col_y1 + 0.35*bh, col_x2, col_y1 + 0.60*bh, 112)
+                    'face_large': get_crop(frame_gray, col_x1 - 0.25*fw, col_y1 - 0.25*fh, col_x2 + 0.25*fw, col_y2 + 0.25*fh, 112),
+                    'face_body': get_crop(frame_gray, col_x1 - 0.75*fw, col_y1, col_x2 + 0.75*fw, col_y2 + 3.0*fh, 224),
+                    'face_body_large': get_crop(frame_gray, col_x1 - 1.1*fw, col_y1 - 0.5*fw, col_x2 + 1.1*fw, col_y2 + 3.0*fh, 224),
+                    'face_small': get_crop(frame_gray, col_x1 + 0.25*fw, col_y1 + 0.4*fh, col_x2 - 0.25*fw, col_y2 - 0.1*fh, 112),
+                    'face_down': get_crop(frame_gray, col_x1, col_y1 + fh/2, col_x2, col_y2, 112),
                 }
-                
+
                 bg_frame = frame_gray.copy()
                 cv2.rectangle(bg_frame, (int(col_x1), int(col_y1)), (int(col_x2), int(col_y2)), (0, 0, 0), thickness=cv2.FILLED)
                 crops['background'] = get_crop(bg_frame, 0, 0, w, h, 224)
 
-                # --- THE SPATIAL FIX: Use Center X and Center Y ---
+                # Spatial cues: normalized center + size (relative to frame)
                 norm_cx = (col_x1 + col_x2) / 2.0 / w
                 norm_cy = (col_y1 + col_y2) / 2.0 / h
-                norm_bw, norm_bh = bw / w, bh / h
+                norm_bw, norm_bh = fw / w, fh / h
                 spatial_4d = np.array([norm_cx, norm_cy, norm_bw, norm_bh], dtype=np.float32)
 
                 if track_id not in track_history:

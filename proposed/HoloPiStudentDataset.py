@@ -101,7 +101,8 @@ class HoloPiStudentDataset(Dataset):
                             clip_id, track_num, timestamp = parts[0], parts[1], round(float(parts[2]), 3)
                             
                             if clip_id in scenes and timestamp in scenes[clip_id] and track_num in scenes[clip_id][timestamp]:
-                                scenes[clip_id][timestamp][track_num][f'{cue_name}_v'] = decode_feature(row[1])
+                                # CSV format: [title, feat_av, feat_v, feat_a] — we want feat_v (row[2])
+                                scenes[clip_id][timestamp][track_num][f'{cue_name}_v'] = decode_feature(row[2])
 
             # --- 4. BUILD SCENE-BASED SLIDING WINDOWS ---
             for clip_id, timeline in scenes.items():

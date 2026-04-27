@@ -29,16 +29,16 @@ def load_columbia_base_features(csv_path):
     return feat_dict
 
 def load_columbia_aux_features(csv_path):
-    """Loads the other 6 visual features which only have one array."""
+    """Loads the other 6 visual features. CSV format: [title, feat_av, feat_v, feat_a]."""
     feat_dict = {}
     if not os.path.exists(csv_path): return feat_dict
-        
+
     with open(csv_path, 'r') as f:
         reader = csv.reader(f)
         for row in reader:
-            if len(row) < 2: continue
+            if len(row) < 3: continue
             key = row[0]
-            feat_dict[key] = decode_feature(row[1])
+            feat_dict[key] = decode_feature(row[2])  # row[2] = feat_v (visual only)
     return feat_dict
 
 def main():
@@ -88,9 +88,9 @@ def main():
     base_feats = load_columbia_base_features(os.path.join(base_feat_dir, "face_feats_info", "train", "col.csv"))
     
     aux_folders = [
-        "face_body_large_feats_info", "face_large_feats_info",
-        "face.body_feats_info", "face_small_feats_info", 
-        "background_feats_info", "face_down_feats_info"
+        "face_body_large_feats_info", "face.body_feats_info",
+        "face_large_feats_info", "background_feats_info",
+        "face_small_feats_info", "face_down_feats_info"
     ]
     
     aux_feat_dicts = []
