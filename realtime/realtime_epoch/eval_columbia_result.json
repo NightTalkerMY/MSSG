@@ -1,0 +1,39 @@
+{
+  "dataset": "Columbia",
+  "timestamp": "2026-04-27 12:33:35",
+  "weights": "D:\\FYP\\MSSG\\realtime\\realtime_epoch\\holopi_student_best.pt",
+  "avg_mAP": 91.0021,
+  "avg_F1": 84.4563,
+  "per_speaker": {
+    "Abbas": {
+      "mAP": 99.7717,
+      "F1": 99.1629,
+      "num_samples": 24775
+    },
+    "Bell": {
+      "mAP": 93.6658,
+      "F1": 85.3508,
+      "num_samples": 74819
+    },
+    "Boll": {
+      "mAP": 80.6073,
+      "F1": 71.5853,
+      "num_samples": 30160
+    },
+    "Lieb": {
+      "mAP": 91.9543,
+      "F1": 86.5325,
+      "num_samples": 32749
+    },
+    "Long": {
+      "mAP": 91.8822,
+      "F1": 84.2898,
+      "num_samples": 58830
+    },
+    "Sick": {
+      "mAP": 88.1312,
+      "F1": 79.8167,
+      "num_samples": 77183
+    }
+  }
+}

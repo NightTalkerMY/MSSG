@@ -16,7 +16,7 @@ from model.faceDetector.s3fd import S3FD
 # CONFIGURATION
 # ==========================================
 MODE = "FILE"  
-VIDEO_FILE = "columbia/col.mp4"
+VIDEO_FILE = "test_video/columbia/col.mp4"
 
 # --- DYNAMIC FPS MATH ---
 cap = cv2.VideoCapture(VIDEO_FILE)

@@ -1,0 +1,7 @@
+{
+  "dataset": "AVA",
+  "timestamp": "2026-04-27 12:31:58",
+  "weights": "D:\\FYP\\MSSG\\realtime\\realtime_epoch\\holopi_student_best.pt",
+  "mAP": 93.0522,
+  "num_samples": 1439696
+}
