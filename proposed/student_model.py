@@ -94,14 +94,12 @@ class CausalStudentASD(nn.Module):
             nn.ReLU(),
         )
 
-        # 4. Causal GRU (2-layer with dropout)
-        self.gru = nn.GRU(hidden_dim, hidden_dim, num_layers=2,
-                          batch_first=True, bidirectional=False, dropout=0.1)
-
-        # 5. Buffer Attention (Multihead with dropout)
-        self.mha = nn.MultiheadAttention(embed_dim=hidden_dim, num_heads=4,
-                                         batch_first=True, dropout=0.1)
-        self.layer_norm = nn.LayerNorm(hidden_dim)
+        # 4. Causal Transformer Encoder (2 layers, higher dropout)
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=hidden_dim, nhead=4, dim_feedforward=256,
+            dropout=0.2, batch_first=True, activation='gelu'
+        )
+        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=2)
 
         # 6. The Causal Graph
         self.causal_graph = CausalGraphNet(in_features=hidden_dim, out_features=hidden_dim)
@@ -134,15 +132,11 @@ class CausalStudentASD(nn.Module):
         # Step 3: Fuse to hidden_dim + audio
         x = self.fuse(v_fused) + a  # [B,S,T,128]
 
-        # Step 4: Causal temporal processing (each speaker independently)
+        # Step 4: Causal Transformer (each speaker independently)
         D = x.shape[-1]
         x_seq = x.view(B * S, T, D)
-        gru_out, _ = self.gru(x_seq)  # [B*S, T, 128]
-
-        # Step 5: Buffer Attention with Strict Causal Mask
-        causal_mask = torch.triu(torch.ones(T, T) * float('-inf'), diagonal=1).to(v.device)
-        attn_out, _ = self.mha(gru_out, gru_out, gru_out, attn_mask=causal_mask)
-        seq_features = self.layer_norm(gru_out + attn_out)
+        causal_mask = torch.triu(torch.ones(T, T, device=v.device) * float('-inf'), diagonal=1)
+        seq_features = self.transformer(x_seq, mask=causal_mask)  # [B*S, T, 128]
 
         # Reshape back to the scene matrix
         seq_features = seq_features.view(B, S, T, D)

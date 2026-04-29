@@ -12,7 +12,26 @@ from sklearn.metrics import average_precision_score, precision_recall_curve
 import numpy as np
 from tqdm import tqdm
 
+import copy
 from student_model import CausalStudentASD
+
+
+class EMA:
+    """Exponential Moving Average of model weights for stable validation."""
+    def __init__(self, model, decay=0.999):
+        self.decay = decay
+        self.shadow = copy.deepcopy(model)
+        self.shadow.eval()
+        for p in self.shadow.parameters():
+            p.requires_grad_(False)
+
+    @torch.no_grad()
+    def update(self, model):
+        for s_param, m_param in zip(self.shadow.parameters(), model.parameters()):
+            s_param.data.mul_(self.decay).add_(m_param.data, alpha=1.0 - self.decay)
+
+    def state_dict(self):
+        return self.shadow.state_dict()
 
 class ChunkedHoloPiIterableDataset(IterableDataset):
     """
@@ -218,6 +237,7 @@ def main():
     col_loader = DataLoader(col_dataset, batch_size=1, num_workers=0)
 
     model = CausalStudentASD().to(device)
+    ema = EMA(model, decay=0.999)
     teacher_sim = TeacherLogitSimulator().to(device)
 
     criterion = KDLoss(mode=TRAINING_MODE, alpha=0.4, beta=0.3, temperature=3.0)
@@ -259,6 +279,7 @@ def main():
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
+            ema.update(model)
 
             total_loss += loss.item()
             total_ce += loss_ce.item()
@@ -279,16 +300,17 @@ def main():
         avg_loss = total_loss / num_batches
         print(f"Epoch {epoch+1} Completed. Avg Loss: {avg_loss:.4f} | LR: {scheduler.get_last_lr()[0]:.6f}")
 
-        # ========== VALIDATE (mAP) ==========
-        model.eval()
+        # ========== VALIDATE (mAP) — using EMA weights ==========
+        ema_model = ema.shadow
+        ema_model.eval()
         all_scores, all_labels = [], []
 
         with torch.no_grad():
-            for v, a, t, s, l, m in tqdm(val_loader, desc="Validating"):
+            for v, a, t, s, l, m in tqdm(val_loader, desc="Validating (EMA)"):
                 v, a, s, m = v.to(device), a.to(device), s.to(device), m.to(device)
                 l = l.to(device)
 
-                student_logits, _ = model(v, a, s, m)
+                student_logits, _ = ema_model(v, a, s, m)
 
                 flat_mask = m.view(-1)
                 valid = flat_mask > 0.5
@@ -302,13 +324,13 @@ def main():
 
         if len(all_labels) > 0:
             mAP = average_precision_score(all_labels, all_scores) * 100
-            print(f"  AVA Val mAP: {mAP:.2f}%")
+            print(f"  AVA Val mAP (EMA): {mAP:.2f}%")
         else:
             mAP = 0.0
             print("  WARNING: No valid AVA val samples found.")
 
-        # ========== COLUMBIA VALIDATION (streaming F1) ==========
-        col_f1 = compute_columbia_f1(model, col_loader, device)
+        # ========== COLUMBIA VALIDATION (streaming F1) — using EMA weights ==========
+        col_f1 = compute_columbia_f1(ema_model, col_loader, device)
         print(f"  Columbia F1:  {col_f1:.2f}%")
 
         combined = 0.5 * mAP + 0.5 * col_f1
@@ -322,15 +344,15 @@ def main():
         with open(log_path, 'a') as f:
             f.write(f"{epoch+1},{avg_loss:.6f},{avg_ce:.6f},{avg_mse:.6f},{avg_kl:.6f},{lr:.8f},{mAP:.4f},{col_f1:.4f},{combined:.4f}\n")
 
-        # Save every epoch
+        # Save EMA weights every epoch
         save_path = os.path.join(save_dir, f"holopi_student_epoch_{epoch+1}.pt")
-        torch.save(model.state_dict(), save_path)
+        torch.save(ema.state_dict(), save_path)
 
         # Track best model by COMBINED metric (AVA mAP + Columbia F1)
         if combined > best_combined:
             best_combined = combined
             best_path = os.path.join(save_dir, "holopi_student_best.pt")
-            torch.save(model.state_dict(), best_path)
+            torch.save(ema.state_dict(), best_path)
             print(f"  New best! Combined={best_combined:.2f}% (AVA={mAP:.2f}%, Col={col_f1:.2f}%) saved to {best_path}")
 
     print(f"\nTraining complete. Best combined metric: {best_combined:.2f}%")
