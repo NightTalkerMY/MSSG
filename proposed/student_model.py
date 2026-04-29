@@ -61,68 +61,100 @@ class CausalGraphNet(nn.Module):
         return F.relu(graph_out + x)
 
 class CausalStudentASD(nn.Module):
-    def __init__(self, visual_dim=896, hidden_dim=128, num_classes=2):
+    NUM_SCALES = 7
+    SCALE_DIM = 128  # Each of the 7 visual scales is 128-dim in the cache
+
+    def __init__(self, hidden_dim=128, num_classes=2):
         super(CausalStudentASD, self).__init__()
-        
-        # 1. Visual Compression Layer
-        # Shrinks the 896 concatenated visual features down to 128 to match the audio
-        self.v_proj = nn.Linear(visual_dim, hidden_dim)
-        
-        # 2. The Causal Sequence Module
-        # batch_first=True, bidirectional=False (Crucial for real-time causality)
-        self.gru = nn.GRU(hidden_dim, hidden_dim, num_layers=1, batch_first=True, bidirectional=False)
-        
-        # Buffer Attention (Multihead)
-        self.mha = nn.MultiheadAttention(embed_dim=hidden_dim, num_heads=4, batch_first=True)
+
+        # 1. Per-scale visual projections (preserves scale independence)
+        # Each mimics one of the teacher's 7 encoder pipelines
+        self.scale_projs = nn.ModuleList([
+            nn.Sequential(
+                nn.Linear(self.SCALE_DIM, 64),
+                nn.ReLU(),
+                nn.Dropout(0.1),
+            )
+            for _ in range(self.NUM_SCALES)
+        ])
+
+        # 2. Spatial-aware scale attention
+        # Learns which visual scales matter based on face position/size [cx,cy,w,h]
+        # Mimics teacher's face-size masking: large face → face/face_large/face_small/face_down
+        #                                     small face → face/face_body/face_large/background/face_body_large
+        self.scale_attn = nn.Sequential(
+            nn.Linear(4, 32),
+            nn.ReLU(),
+            nn.Linear(32, self.NUM_SCALES),
+        )
+
+        # 3. Scale fusion → hidden_dim
+        self.fuse = nn.Sequential(
+            nn.Linear(64, hidden_dim),
+            nn.ReLU(),
+        )
+
+        # 4. Causal GRU (2-layer with dropout)
+        self.gru = nn.GRU(hidden_dim, hidden_dim, num_layers=2,
+                          batch_first=True, bidirectional=False, dropout=0.1)
+
+        # 5. Buffer Attention (Multihead with dropout)
+        self.mha = nn.MultiheadAttention(embed_dim=hidden_dim, num_heads=4,
+                                         batch_first=True, dropout=0.1)
         self.layer_norm = nn.LayerNorm(hidden_dim)
-        
-        # 3. The Causal Graph
+
+        # 6. The Causal Graph
         self.causal_graph = CausalGraphNet(in_features=hidden_dim, out_features=hidden_dim)
-        
-        # 4. The Final Classifier
+
+        # 7. The Final Classifier (with dropout)
+        self.feat_dropout = nn.Dropout(0.1)
         self.classifier = nn.Linear(hidden_dim, num_classes)
 
     def forward(self, v, a, s_cues, mask):
         """
-        v: Visual features [B, 5, 50, 896]
+        v: Visual features [B, 5, 50, 896] — 7 scales × 128-dim concatenated
         a: Audio features [B, 5, 50, 128]
-        s_cues: Spatial info [B, 5, 50, 4] (Passed for future architectural expansion)
+        s_cues: Spatial info [B, 5, 50, 4] — face position/size [cx, cy, w, h]
         mask: Valid node mask [B, 5, 50]
         """
         B, S, T, _ = v.shape
-        
-        # Step 1: Compress Visuals
-        v_compressed = F.relu(self.v_proj(v)) # [B, S, T, 128]
-        
-        # Step 2: Modality Fusion (Simple Addition, fast for Raspberry Pi)
-        x = v_compressed + a # [B, S, T, 128]
-        
-        # Step 3: Sequence Processing (Process each speaker's timeline independently)
-        # Reshape to [B * S, T, 128] so the GRU processes 5 timelines in parallel
-        x_seq = x.view(B * S, T, 128)
 
-        gru_out, _ = self.gru(x_seq) # gru_out: [B * S, T, 128]
+        # Step 1: Per-scale visual processing (each scale projected independently)
+        scale_feats = []
+        for i, proj in enumerate(self.scale_projs):
+            scale_v = v[:, :, :, i * self.SCALE_DIM:(i + 1) * self.SCALE_DIM]  # [B,S,T,128]
+            scale_feats.append(proj(scale_v))  # [B,S,T,64]
+        scale_stack = torch.stack(scale_feats, dim=3)  # [B,S,T,7,64]
 
-        # Step 4: Buffer Attention with Strict Causal Mask
-        # The mask forces the attention layer to ignore future frames
+        # Step 2: Spatial-aware scale attention
+        # Attention weights decide which visual scales matter for this face
+        attn_weights = F.softmax(self.scale_attn(s_cues), dim=-1)  # [B,S,T,7]
+        v_fused = (scale_stack * attn_weights.unsqueeze(-1)).sum(dim=3)  # [B,S,T,64]
+
+        # Step 3: Fuse to hidden_dim + audio
+        x = self.fuse(v_fused) + a  # [B,S,T,128]
+
+        # Step 4: Causal temporal processing (each speaker independently)
+        D = x.shape[-1]
+        x_seq = x.view(B * S, T, D)
+        gru_out, _ = self.gru(x_seq)  # [B*S, T, 128]
+
+        # Step 5: Buffer Attention with Strict Causal Mask
         causal_mask = torch.triu(torch.ones(T, T) * float('-inf'), diagonal=1).to(v.device)
-
         attn_out, _ = self.mha(gru_out, gru_out, gru_out, attn_mask=causal_mask)
-        seq_features = self.layer_norm(gru_out + attn_out) # Residual connection
+        seq_features = self.layer_norm(gru_out + attn_out)
 
         # Reshape back to the scene matrix
-        seq_features = seq_features.view(B, S, T, 128)
+        seq_features = seq_features.view(B, S, T, D)
 
-        # Zero out ghost speaker outputs so GRU artifacts don't leak into the graph
-        seq_features = seq_features * mask.unsqueeze(-1)  # mask: [B,S,T] → [B,S,T,1]
-        
-        # Step 5: Inter/Intra Speaker Graph Routing
-        # This is where the student mimics the Teacher's MSSG behavior
+        # Zero out ghost speaker outputs
+        seq_features = seq_features * mask.unsqueeze(-1)
+
+        # Step 6: Inter/Intra Speaker Graph Routing
         graph_features = self.causal_graph(seq_features, mask)
 
-        # Step 6: Classification
-        logits = self.classifier(graph_features) # [B, S, T, 2]
+        # Step 7: Classification
+        logits = self.classifier(self.feat_dropout(graph_features))  # [B, S, T, 2]
 
-        # Return logits (for CE) and pre-graph features (for KD MSE against teacher_av,
-        # which is also a pre-graph representation from the teacher's BiGRU output)
+        # Return logits (for CE) and pre-graph features (for KD MSE)
         return logits, seq_features
