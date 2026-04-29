@@ -75,7 +75,7 @@ def main():
                 'entity_id': entity_id,
                 'name': entity_id.split('_')[0].capitalize(),
                 'label': int(real_label_id), # NOW GRABBING THE ACTUAL GROUND TRUTH!
-                'box': [float(x1), float(y1), float(x2) - float(x1), float(y2) - float(y1)] 
+                'box': [(float(x1) + float(x2)) / 2.0, (float(y1) + float(y2)) / 2.0, float(x2) - float(x1), float(y2) - float(y1)]
             })
 
     sorted_ts = sorted(timestamps.keys())
