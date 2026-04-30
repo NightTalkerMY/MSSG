@@ -1,24 +1,23 @@
 """
 Evaluate Teacher MSSG vs Student under TRUE online streaming — Columbia dataset.
 
-Same protocol as eval_teacher_causal.py (AVA version):
+Protocol:
   - Both models receive the same 50-frame cached chunks
   - Only the LAST frame (frame 49) prediction is used
   - Teacher BiGRU runs FULLY INTACT (forward + backward)
-  - Backward GRU starts cold at frame 49 → zero future context
-
-Reports per-speaker mAP and F1 (matching Columbia evaluation convention).
+  - Reports per-speaker F1 + average F1 + latency
 """
 import os
 import sys
 import glob
 import json
+import time
 import torch
 import numpy as np
 import torch.nn.functional as F
 from torch.utils.data import IterableDataset, DataLoader
 from torch_geometric.data import Data
-from sklearn.metrics import average_precision_score, precision_recall_curve
+from sklearn.metrics import precision_recall_curve
 from tqdm import tqdm
 from datetime import datetime
 
@@ -34,7 +33,7 @@ PRETRAIN_DIR = r"D:\FYP\MSSG\predata\pretrain_model"
 MSSG_WEIGHTS = r"D:\FYP\MSSG\exps\graph_training\graph_2000\chckpoint_best.pt"
 STUDENT_WEIGHTS = r"D:\FYP\MSSG\realtime\realtime_epoch\holopi_student_best.pt"
 COL_CACHE_DIR = r"D:\FYP\MSSG\realtime\columbia_cached_chunks"
-FRAME_WIDTH = 1280  # Columbia video is 1280x720, size_dic uses width (1280)
+FRAME_WIDTH = 1280
 
 ENCODER_CONFIGS = [
     {'name': 'face',            'path': 'face_model',             'cache_slice': (0, 128),     'mssg_start': 0},
@@ -58,12 +57,12 @@ class ColumbiaIterableDataset(IterableDataset):
             num_items = data['l'].shape[0]
             for idx in range(num_items):
                 yield (
-                    data['v'][idx],      # [5, 50, 896]
-                    data['a'][idx],      # [5, 50, 128]
-                    data['s'][idx],      # [5, 50, 4]
-                    data['l'][idx],      # [5, 50]
-                    data['m'][idx],      # [5, 50]
-                    data['names'][idx],  # list of 5 strings
+                    data['v'][idx],
+                    data['a'][idx],
+                    data['s'][idx],
+                    data['l'][idx],
+                    data['m'][idx],
+                    data['names'][idx],
                 )
 
 
@@ -105,22 +104,31 @@ def main():
     teacher_speaker_targets = {}
     student_speaker_preds = {}
     student_speaker_targets = {}
+    teacher_times, student_times = [], []
 
     LAST_FRAME = 49
+
+    # Warmup GPU
+    print("Warming up GPU...")
+    dummy_v = torch.randn(1, 5, 50, 896).to(device)
+    dummy_a = torch.randn(1, 5, 50, 128).to(device)
+    dummy_s = torch.randn(1, 5, 50, 4).to(device)
+    dummy_m = torch.ones(1, 5, 50).to(device)
+    for _ in range(10):
+        _ = student_model(dummy_v, dummy_a, dummy_s, dummy_m)
+    torch.cuda.synchronize()
 
     print("Evaluating both models — LAST FRAME ONLY (true streaming)...")
     with torch.no_grad():
         for v, a, s_feat, labels, masks, names in tqdm(val_loader):
-            v = v[0]            # [5, 50, 896]
-            a = a[0]            # [5, 50, 128]
-            s_feat = s_feat[0]  # [5, 50, 4]
-            labels = labels[0]  # [5, 50]
-            masks = masks[0]    # [5, 50]
+            v = v[0]
+            a = a[0]
+            s_feat = s_feat[0]
+            labels = labels[0]
+            masks = masks[0]
 
-            # Extract names (DataLoader wraps strings in tuples)
             extracted_names = [n[0] if isinstance(n, (list, tuple)) else n for n in names]
 
-            # Only evaluate speakers active at the LAST frame (and not Ghost)
             active_at_last = [
                 p for p in range(5)
                 if masks[p, LAST_FRAME] > 0.5 and extracted_names[p] != "Ghost"
@@ -128,7 +136,10 @@ def main():
             if len(active_at_last) == 0:
                 continue
 
-            # ===== TEACHER: full BiGRU (unchanged) → last frame only =====
+            # ===== TEACHER =====
+            torch.cuda.synchronize()
+            t_start = time.perf_counter()
+
             valid_speakers = [p for p in range(5) if masks[p].sum() > 0]
             num_valid = len(valid_speakers)
 
@@ -137,15 +148,12 @@ def main():
                 cs_start, cs_end = config['cache_slice']
                 ms = config['mssg_start']
                 bigru = bigrus[config['name']]
-
                 feat_v_enc = torch.stack([v[p, :, cs_start:cs_end] for p in valid_speakers])
                 feat_a_enc = torch.stack([a[p] for p in valid_speakers])
-
                 bigru_input = (feat_v_enc + feat_a_enc).to(device)
                 bigru_output = bigru(bigru_input).cpu()
                 feat_av_all[:, :, ms:ms+128] = bigru_output
 
-            # Build graph for LAST FRAME ONLY
             node_features = []
             node_labels_t = []
             node_names_t = []
@@ -163,10 +171,8 @@ def main():
                 spatial = s_feat[p, LAST_FRAME]
                 face_size = (spatial[2] * FRAME_WIDTH).unsqueeze(0)
                 speaker_num = torch.tensor([float(num_active)])
-
                 node_feat = torch.cat([feat_av, face_size, spatial, speaker_num])
                 node_features.append(node_feat)
-
                 lbl = labels[p, LAST_FRAME].item()
                 if lbl == 2.0:
                     lbl = 0.0
@@ -174,7 +180,6 @@ def main():
                 node_names_t.append(extracted_names[p])
                 node_idx += 1
 
-            # Edges: all-to-all at same frame
             for j in range(node_idx):
                 for k in range(node_idx):
                     src_v.append(j)
@@ -188,10 +193,13 @@ def main():
             edge_index = torch.tensor([src_v, tgt_v], dtype=torch.long).to(device)
             edge_attr_t = torch.tensor(e_attr, dtype=torch.float).to(device)
             y = torch.tensor(node_labels_t, dtype=torch.float).unsqueeze(1).to(device)
-
             graph_data = Data(x=x, edge_index=edge_index, y=y, edge_attr=edge_attr_t)
             output = mssg_model(graph_data)
             t_scores = F.softmax(output, dim=-1)[:, 1].cpu().tolist()
+
+            torch.cuda.synchronize()
+            t_end = time.perf_counter()
+            teacher_times.append(t_end - t_start)
 
             for i, name in enumerate(node_names_t):
                 if name not in teacher_speaker_preds:
@@ -200,14 +208,20 @@ def main():
                 teacher_speaker_preds[name].append(t_scores[i])
                 teacher_speaker_targets[name].append(node_labels_t[i])
 
-            # ===== STUDENT: causal model → last frame only =====
+            # ===== STUDENT =====
+            torch.cuda.synchronize()
+            s_start = time.perf_counter()
+
             v_in = v.unsqueeze(0).to(device)
             a_in = a.unsqueeze(0).to(device)
             s_in = s_feat.unsqueeze(0).to(device)
             m_in = masks.unsqueeze(0).to(device)
-
             logits, _ = student_model(v_in, a_in, s_in, m_in)
             s_probs = F.softmax(logits[0, :, LAST_FRAME, :], dim=-1)
+
+            torch.cuda.synchronize()
+            s_end = time.perf_counter()
+            student_times.append(s_end - s_start)
 
             for p in active_at_last:
                 name = extracted_names[p]
@@ -220,18 +234,21 @@ def main():
                     lbl = 0.0
                 student_speaker_targets[name].append(lbl)
 
-    # 4. Per-speaker results (F1 comparison)
+    # 4. Per-speaker F1 results
+    teacher_avg_ms = np.mean(teacher_times) * 1000
+    student_avg_ms = np.mean(student_times) * 1000
+    speedup = teacher_avg_ms / student_avg_ms
+
     print(f"\n{'='*75}")
-    print(f"  === TRUE ONLINE STREAMING — Columbia (last-frame prediction only) ===")
+    print(f"  TRUE ONLINE STREAMING — Columbia (last-frame prediction only)")
     print(f"{'='*75}")
-    print(f"\n{'Speaker':<15} | {'Teacher F1':<15} | {'Student F1':<15} | {'Diff':<10}")
-    print("-" * 60)
+    print(f"\n  {'Speaker':<15} | {'Teacher F1':<12} | {'Student F1':<12} | {'Diff':<10}")
+    print(f"  {'-'*55}")
 
     teacher_f1_list, student_f1_list = [], []
     all_speakers = sorted(set(list(teacher_speaker_preds.keys()) + list(student_speaker_preds.keys())))
 
     for speaker in all_speakers:
-        # Teacher F1
         t_preds = np.array(teacher_speaker_preds.get(speaker, []))
         t_targets = np.array(teacher_speaker_targets.get(speaker, []))
         t_prec, t_rec, _ = precision_recall_curve(t_targets, t_preds)
@@ -239,7 +256,6 @@ def main():
         t_best_f1 = np.max(t_f1_scores) * 100
         teacher_f1_list.append(t_best_f1)
 
-        # Student F1
         s_preds = np.array(student_speaker_preds.get(speaker, []))
         s_targets = np.array(student_speaker_targets.get(speaker, []))
         s_prec, s_rec, _ = precision_recall_curve(s_targets, s_preds)
@@ -248,14 +264,19 @@ def main():
         student_f1_list.append(s_best_f1)
 
         diff = s_best_f1 - t_best_f1
-        print(f"{speaker:<15} | {t_best_f1:<15.2f} | {s_best_f1:<15.2f} | {diff:+.2f}")
+        print(f"  {speaker:<15} | {t_best_f1:<12.2f} | {s_best_f1:<12.2f} | {diff:+.2f}%")
 
     teacher_avg_f1 = float(np.mean(teacher_f1_list))
     student_avg_f1 = float(np.mean(student_f1_list))
+    diff_f1 = student_avg_f1 - teacher_avg_f1
 
-    print("-" * 60)
-    print(f"{'AVERAGE':<15} | {teacher_avg_f1:<15.2f} | {student_avg_f1:<15.2f} | {student_avg_f1 - teacher_avg_f1:+.2f}")
-    print(f"\n  Student advantage (F1): {student_avg_f1 - teacher_avg_f1:+.4f}%")
+    print(f"  {'-'*55}")
+    print(f"  {'AVERAGE':<15} | {teacher_avg_f1:<12.2f} | {student_avg_f1:<12.2f} | {diff_f1:+.2f}%")
+
+    print(f"\n  {'Metric':<25} | {'Teacher':<12} | {'Student':<12} | {'Diff':<10}")
+    print(f"  {'-'*60}")
+    print(f"  {'Avg F1 (%)':<25} | {teacher_avg_f1:<12.2f} | {student_avg_f1:<12.2f} | {diff_f1:+.2f}%")
+    print(f"  {'Latency (ms/sample)':<25} | {teacher_avg_ms:<12.2f} | {student_avg_ms:<12.2f} | {speedup:.1f}x faster")
     print(f"{'='*75}\n")
 
     # 5. Save result
@@ -266,15 +287,18 @@ def main():
         "protocol": "last_frame_only (frame 49 of 50-frame buffer)",
         "avg_teacher_F1": round(teacher_avg_f1, 4),
         "avg_student_F1": round(student_avg_f1, 4),
-        "student_advantage_F1": round(student_avg_f1 - teacher_avg_f1, 4),
+        "diff_F1": round(diff_f1, 4),
+        "teacher_latency_ms": round(teacher_avg_ms, 4),
+        "student_latency_ms": round(student_avg_ms, 4),
+        "speedup": round(speedup, 2),
         "per_speaker": {},
     }
     for i, speaker in enumerate(all_speakers):
         result["per_speaker"][speaker] = {
             "teacher_F1": round(teacher_f1_list[i], 4),
             "student_F1": round(student_f1_list[i], 4),
-            "num_teacher_samples": len(teacher_speaker_preds.get(speaker, [])),
-            "num_student_samples": len(student_speaker_preds.get(speaker, [])),
+            "diff_F1": round(student_f1_list[i] - teacher_f1_list[i], 4),
+            "num_samples": len(teacher_speaker_preds.get(speaker, [])),
         }
 
     result_path = r"D:\FYP\MSSG\realtime\realtime_epoch\eval_streaming_columbia_result.json"

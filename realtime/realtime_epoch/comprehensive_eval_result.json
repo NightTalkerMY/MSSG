@@ -1,0 +1,118 @@
+{
+  "timestamp": "2026-04-30 19:09:50",
+  "device": "cuda",
+  "parameters": {
+    "teacher_7_bigru": 1387008,
+    "teacher_mssg": 19220,
+    "teacher_total": 1406228,
+    "student_total": 430793,
+    "student_breakdown": {
+      "scale_projections_7x": 57792,
+      "scale_attention": 391,
+      "fusion_layer": 8320,
+      "causal_gru_2layer": 198144,
+      "buffer_mha": 66304,
+      "gated_ffn": 33280,
+      "cross_speaker_attn": 66304,
+      "classifier": 258
+    },
+    "reduction_ratio": 3.26
+  },
+  "ava_streaming": {
+    "teacher_mAP": 90.5689,
+    "student_mAP": 92.7842,
+    "diff_mAP": 2.2153,
+    "teacher_latency_ms": 4.5232,
+    "student_latency_ms": 1.6696,
+    "speedup": 2.71,
+    "num_samples": 28777
+  },
+  "columbia_streaming": {
+    "avg_teacher_F1": 90.0997,
+    "avg_student_F1": 91.66,
+    "diff_F1": 1.5602,
+    "teacher_latency_ms": 4.5836,
+    "student_latency_ms": 1.6742,
+    "speedup": 2.74,
+    "per_speaker": {
+      "Abbas": {
+        "teacher_F1": 99.187,
+        "student_F1": 99.0863,
+        "diff_F1": -0.1007,
+        "num_samples": 497
+      },
+      "Bell": {
+        "teacher_F1": 91.5864,
+        "student_F1": 92.5099,
+        "diff_F1": 0.9235,
+        "num_samples": 1494
+      },
+      "Boll": {
+        "teacher_F1": 77.7528,
+        "student_F1": 83.4467,
+        "diff_F1": 5.6939,
+        "num_samples": 603
+      },
+      "Lieb": {
+        "teacher_F1": 93.4211,
+        "student_F1": 94.4262,
+        "diff_F1": 1.0052,
+        "num_samples": 656
+      },
+      "Long": {
+        "teacher_F1": 91.4345,
+        "student_F1": 90.2344,
+        "diff_F1": -1.2001,
+        "num_samples": 1175
+      },
+      "Sick": {
+        "teacher_F1": 87.2167,
+        "student_F1": 90.2564,
+        "diff_F1": 3.0397,
+        "num_samples": 1546
+      }
+    }
+  },
+  "degradation": {
+    "teacher_offline_mAP": 95.5201,
+    "teacher_streaming_mAP": 90.5689,
+    "teacher_degradation": -4.9512,
+    "student_allframes_mAP": 92.396,
+    "student_streaming_mAP": 92.7842,
+    "student_vs_teacher_streaming": 2.2153
+  },
+  "ablation": [
+    {
+      "name": "Full Model",
+      "ava_mAP": 92.7842,
+      "col_F1": 91.66
+    },
+    {
+      "name": "w/o Scale Attention",
+      "ava_mAP": 92.9742,
+      "col_F1": 91.5592
+    },
+    {
+      "name": "w/o Buffer MHA",
+      "ava_mAP": 92.1906,
+      "col_F1": 89.1888
+    },
+    {
+      "name": "w/o Gated FFN",
+      "ava_mAP": 92.3007,
+      "col_F1": 91.7548
+    },
+    {
+      "name": "w/o Cross-Speaker Attn",
+      "ava_mAP": 91.1303,
+      "col_F1": 91.9361
+    }
+  ],
+  "latency": {
+    "teacher_gpu_ms": 4.5232,
+    "student_gpu_ms": 1.6696,
+    "student_cpu_ms": 8.8469,
+    "gpu_speedup": 2.71,
+    "note": "Teacher cannot run on CPU without torch_geometric. Latency measures temporal+graph inference only."
+  }
+}
