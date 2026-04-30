@@ -7,7 +7,7 @@ import torch.optim as optim
 import random
 from torch.utils.data import IterableDataset
 from torch.utils.data import Dataset, DataLoader
-from torch.optim.lr_scheduler import CosineAnnealingLR
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from sklearn.metrics import average_precision_score, precision_recall_curve
 import numpy as np
 from tqdm import tqdm
@@ -243,7 +243,7 @@ def main():
 
     criterion = KDLoss(mode=TRAINING_MODE, alpha=0.4, beta=0.3, temperature=3.0)
     optimizer = optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-4)
-    scheduler = CosineAnnealingLR(optimizer, T_max=50, eta_min=1e-6)
+    scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=10, T_mult=1, eta_min=1e-6)
 
     num_epochs = 50
     save_dir = r"D:\FYP\MSSG\realtime\realtime_epoch"
@@ -332,7 +332,7 @@ def main():
         col_f1 = compute_columbia_f1(model, col_loader, device)
         print(f"  Columbia F1:  {col_f1:.2f}%")
 
-        combined = 0.5 * mAP + 0.5 * col_f1
+        combined = 0.4 * mAP + 0.6 * col_f1
         print(f"  Combined:     {combined:.2f}%")
 
         # Log metrics to CSV
