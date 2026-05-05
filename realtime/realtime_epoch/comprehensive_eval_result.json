@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-04-30 19:09:50",
+  "timestamp": "2026-05-04 03:14:15",
   "device": "cuda",
   "parameters": {
     "teacher_7_bigru": 1387008,
@@ -22,18 +22,18 @@
     "teacher_mAP": 90.5689,
     "student_mAP": 92.7842,
     "diff_mAP": 2.2153,
-    "teacher_latency_ms": 4.5232,
-    "student_latency_ms": 1.6696,
-    "speedup": 2.71,
+    "teacher_latency_ms": 4.4823,
+    "student_latency_ms": 1.7216,
+    "speedup": 2.6,
     "num_samples": 28777
   },
   "columbia_streaming": {
     "avg_teacher_F1": 90.0997,
     "avg_student_F1": 91.66,
     "diff_F1": 1.5602,
-    "teacher_latency_ms": 4.5836,
-    "student_latency_ms": 1.6742,
-    "speedup": 2.74,
+    "teacher_latency_ms": 4.6254,
+    "student_latency_ms": 1.7661,
+    "speedup": 2.62,
     "per_speaker": {
       "Abbas": {
         "teacher_F1": 99.187,
@@ -107,12 +107,5 @@
       "ava_mAP": 91.1303,
       "col_F1": 91.9361
     }
-  ],
-  "latency": {
-    "teacher_gpu_ms": 4.5232,
-    "student_gpu_ms": 1.6696,
-    "student_cpu_ms": 8.8469,
-    "gpu_speedup": 2.71,
-    "note": "Teacher cannot run on CPU without torch_geometric. Latency measures temporal+graph inference only."
-  }
+  ]
 }

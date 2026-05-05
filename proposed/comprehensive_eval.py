@@ -8,7 +8,6 @@ Sections:
   3. Columbia streaming evaluation (Teacher vs Student, per-speaker F1 + latency)
   4. Streaming degradation analysis
   5. Ablation study (component knockout)
-  6. CPU latency benchmark
 
 All results saved to a single JSON file.
 """
@@ -586,7 +585,7 @@ def main():
         print(f"  {speaker:<15} | {data['teacher_F1']:>11.2f}% | {data['student_F1']:>11.2f}% | {data['diff_F1']:>+9.2f}%")
     print(f"  {'-'*55}")
     print(f"  {'AVERAGE':<15} | {col_result['avg_teacher_F1']:>11.2f}% | {col_result['avg_student_F1']:>11.2f}% | {col_result['diff_F1']:>+9.2f}%")
-    print(f"\n  Latency: Teacher {col_result['teacher_latency_ms']:.2f}ms | Student {col_result['student_latency_ms']:.2f}ms | {col_result['speedup']}x faster")
+    print(f"\n  {'Latency (ms/sample)':<25} | {col_result['teacher_latency_ms']:>12.2f} | {col_result['student_latency_ms']:>12.2f} | {col_result['speedup']}x faster")
 
     # ================================================================
     # SECTION 4: STREAMING DEGRADATION
@@ -679,44 +678,6 @@ def main():
             print(f"  {r['name']:<25} | {r['ava_mAP']:>9.2f}% | {'---':>8} | {r['col_F1']:>9.2f}% | {'---':>8}")
         else:
             print(f"  {r['name']:<25} | {r['ava_mAP']:>9.2f}% | {d_ava:>+7.2f}% | {r['col_F1']:>9.2f}% | {d_col:>+7.2f}%")
-
-    # ================================================================
-    # SECTION 6: CPU LATENCY
-    # ================================================================
-    print(f"\n{'='*70}")
-    print("  SECTION 6: CPU LATENCY BENCHMARK")
-    print(f"{'='*70}")
-
-    print("\n  Measuring student CPU inference latency...")
-    student_cpu = CausalStudentASD()
-    student_cpu.load_state_dict(torch.load(STUDENT_WEIGHTS, map_location='cpu'))
-    student_cpu.eval()
-
-    dummy = (torch.randn(1, 5, 50, 896), torch.randn(1, 5, 50, 128),
-             torch.randn(1, 5, 50, 4), torch.ones(1, 5, 50))
-    for _ in range(5):
-        _ = student_cpu(*dummy)
-
-    cpu_times = []
-    with torch.no_grad():
-        for _ in range(50):
-            t0 = time.perf_counter()
-            _ = student_cpu(*dummy)
-            cpu_times.append(time.perf_counter() - t0)
-    student_cpu_ms = round(np.mean(cpu_times) * 1000, 4)
-
-    results["latency"] = {
-        "teacher_gpu_ms": ava_result['teacher_latency_ms'],
-        "student_gpu_ms": ava_result['student_latency_ms'],
-        "student_cpu_ms": student_cpu_ms,
-        "gpu_speedup": ava_result['speedup'],
-        "note": "Teacher cannot run on CPU without torch_geometric. Latency measures temporal+graph inference only.",
-    }
-
-    print(f"\n  {'Platform':<20} | {'Teacher (ms)':>15} | {'Student (ms)':>15} | {'Speedup':>10}")
-    print(f"  {'-'*65}")
-    print(f"  {'GPU':<20} | {ava_result['teacher_latency_ms']:>14.2f} | {ava_result['student_latency_ms']:>14.2f} | {ava_result['speedup']}x")
-    print(f"  {'CPU':<20} | {'N/A (needs PyG)':>15} | {student_cpu_ms:>14.2f} | {'':>10}")
 
     # ================================================================
     # SAVE ALL RESULTS
