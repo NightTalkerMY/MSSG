@@ -22,16 +22,60 @@ class CrossSpeakerAttention(nn.Module):
         B, S, T, D = x.shape
 
         # Reshape to [B*T, S, D] — at each timestep, speakers attend to each other
-        x_cross = x.permute(0, 2, 1, 3).reshape(B * T, S, D)
+        # mha only accept 3D tensor, so we need to reshape here
+        """ 
+        Hence final tensor shape: 
+        Batch n:
+
+            [
+
+            [embedding₁]
+
+            [embedding₂]
+
+            ...
+
+            [embeddingₘ]
+
+            ]
+            n: Batch x Timeframe
+            m: 5 speakers
+            embedding: 128 dimension
+        """
+        x_cross = x.permute(0, 2, 1, 3).reshape(B * T, S, D) 
 
         # Build key_padding_mask: [B*T, S] — True means IGNORE this speaker
+        """ 
+        Initial tensor shape:
+        mask = [
+            # Batch 1
+                [
+                    [1.0, 1.0],  # Speaker 1 (Real)   - Frame 0, Frame 1
+                    [1.0, 1.0],  # Speaker 2 (Real)   - Frame 0, Frame 1
+                    [0.0, 0.0]   # Speaker 3 (Ghost)  - Frame 0, Frame 1
+                ]
+            ]
+        Hence final tensor shape: 
+        mask_cross = [
+                [1.0, 1.0, 0.0],  # Meeting Room 1 (Frame 0)
+                [1.0, 1.0, 0.0]   # Meeting Room 2 (Frame 1)
+            ]
+        """
+    
         mask_cross = mask.permute(0, 2, 1).reshape(B * T, S)  # [B*T, S]
+
+        """""
+        key_padding_mask = [
+            [False, False, True],  # Meeting Room 1 (Frame 0)
+            [False, False, True]   # Meeting Room 2 (Frame 1)
+            ]
+        """""
         key_padding_mask = mask_cross < 0.5  # True = ghost = ignore
 
         # If all speakers are ghosts at a timestep, skip masking to avoid NaN
         all_masked = key_padding_mask.all(dim=-1)  # [B*T]
         key_padding_mask[all_masked] = False  # allow attention (features are zero anyway)
-
+        
         attn_out, _ = self.mha(
             x_cross, x_cross, x_cross,
             key_padding_mask=key_padding_mask
@@ -52,37 +96,43 @@ class CausalStudentASD(nn.Module):
 
         # 1. Per-scale visual projections (preserves scale independence)
         self.scale_projs = nn.ModuleList([
-            nn.Sequential(
+            nn.Sequential( # each visual cues we shrink them into more detail 64 dimension
                 nn.Linear(self.SCALE_DIM, 64),
                 nn.ReLU(),
                 nn.Dropout(0.1),
             )
-            for _ in range(self.NUM_SCALES)
+            for _ in range(self.NUM_SCALES) # take whatever we had here and run 7 times
         ])
 
         # 2. Spatial-aware scale attention
-        self.scale_attn = nn.Sequential(
+        self.scale_attn = nn.Sequential( # here we taking spatial cues (cx, cy, w, h) of that face
             nn.Linear(4, 32),
             nn.ReLU(),
-            nn.Linear(32, self.NUM_SCALES),
+            nn.Linear(32, self.NUM_SCALES), # we then expanded so it reaches the same number as visual cues
         )
 
         # 3. Scale fusion → hidden_dim
-        self.fuse = nn.Sequential(
+        self.fuse = nn.Sequential( # continuation of #1, we take the visual cues of 64 detailed just now and back to 128 dimension
+            # because at this stage audio embedding has 128 dimension, it has to match it
             nn.Linear(64, hidden_dim),
             nn.ReLU(),
         )
 
         # 4. Causal GRU (2-layer with dropout)
+        # This is the sequential memory, so our neural network can jot down what happen in the pass n frame
         self.gru = nn.GRU(hidden_dim, hidden_dim, num_layers=2,
                           batch_first=True, bidirectional=False, dropout=0.1)
 
         # 5. Buffer Attention (Multihead with dropout)
+        # This act as a "search mode", so it "amplifies" what seems to be lost in very past of GRU
         self.mha = nn.MultiheadAttention(embed_dim=hidden_dim, num_heads=4,
                                          batch_first=True, dropout=0.1)
         self.temporal_norm = nn.LayerNorm(hidden_dim)
 
         # 6. Gated FFN — mimics teacher's backward GRU gated feedforward transform
+        # This has two stage
+        # a. the gate: basically after (mha + GRU) on how confident on scale of 0-100% we are confident this is the embeddings
+        # b. the value: basically after (mha + GRU) on whether this person is talking(1 to 0.1) or not talking(-1 to -0.1)
         self.gate_proj = nn.Linear(hidden_dim, hidden_dim)
         self.value_proj = nn.Linear(hidden_dim, hidden_dim)
         self.ffn_norm = nn.LayerNorm(hidden_dim)
