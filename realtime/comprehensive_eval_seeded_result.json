@@ -1,0 +1,308 @@
+{
+  "timestamp": "2026-05-15 13:39:57",
+  "device": "cuda",
+  "seeds": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "parameters": {
+    "teacher_total": 1406228,
+    "student_total": 430793,
+    "reduction_ratio": 3.26
+  },
+  "teacher": {
+    "ava_streaming_mAP": 90.5689,
+    "ava_latency_ms": 5.5386,
+    "columbia_avg_F1": 90.0997,
+    "columbia_latency_ms": 5.2907,
+    "columbia_per_speaker": {
+      "Abbas": 99.187,
+      "Bell": 91.5864,
+      "Boll": 77.7528,
+      "Lieb": 93.4211,
+      "Long": 91.4345,
+      "Sick": 87.2167
+    }
+  },
+  "per_seed": {
+    "1": {
+      "ava_mAP": 92.789,
+      "ava_latency_ms": 2.4652,
+      "col_F1": 90.878,
+      "col_latency_ms": 2.542,
+      "col_per_speaker": {
+        "Abbas": 99.0863,
+        "Bell": 91.3098,
+        "Boll": 82.6484,
+        "Lieb": 93.1596,
+        "Long": 90.2316,
+        "Sick": 88.8321
+      },
+      "allframes_mAP": 92.384,
+      "ablation": {
+        "Full Model": {
+          "ava_mAP": 92.7889,
+          "col_F1": 90.878
+        },
+        "w/o Scale Attention": {
+          "ava_mAP": 92.8639,
+          "col_F1": 91.1794
+        },
+        "w/o Buffer MHA": {
+          "ava_mAP": 91.9799,
+          "col_F1": 89.7538
+        },
+        "w/o Gated FFN": {
+          "ava_mAP": 92.625,
+          "col_F1": 90.6338
+        },
+        "w/o Cross-Speaker Attn": {
+          "ava_mAP": 90.6498,
+          "col_F1": 92.5464
+        }
+      }
+    },
+    "2": {
+      "ava_mAP": 93.3464,
+      "ava_latency_ms": 2.4281,
+      "col_F1": 90.8355,
+      "col_latency_ms": 2.7128,
+      "col_per_speaker": {
+        "Abbas": 99.0863,
+        "Bell": 91.1197,
+        "Boll": 82.6185,
+        "Lieb": 93.5065,
+        "Long": 89.8129,
+        "Sick": 88.8689
+      },
+      "allframes_mAP": 92.8735,
+      "ablation": {
+        "Full Model": {
+          "ava_mAP": 93.3464,
+          "col_F1": 90.8355
+        },
+        "w/o Scale Attention": {
+          "ava_mAP": 93.4781,
+          "col_F1": 90.9964
+        },
+        "w/o Buffer MHA": {
+          "ava_mAP": 92.3675,
+          "col_F1": 89.1713
+        },
+        "w/o Gated FFN": {
+          "ava_mAP": 93.1392,
+          "col_F1": 89.1497
+        },
+        "w/o Cross-Speaker Attn": {
+          "ava_mAP": 91.1235,
+          "col_F1": 91.0214
+        }
+      }
+    },
+    "3": {
+      "ava_mAP": 92.6304,
+      "ava_latency_ms": 2.447,
+      "col_F1": 90.2264,
+      "col_latency_ms": 2.4069,
+      "col_per_speaker": {
+        "Abbas": 99.187,
+        "Bell": 90.3984,
+        "Boll": 81.069,
+        "Lieb": 93.8511,
+        "Long": 88.3399,
+        "Sick": 88.5129
+      },
+      "allframes_mAP": 92.2874,
+      "ablation": {
+        "Full Model": {
+          "ava_mAP": 92.6304,
+          "col_F1": 90.2264
+        },
+        "w/o Scale Attention": {
+          "ava_mAP": 92.8566,
+          "col_F1": 90.2178
+        },
+        "w/o Buffer MHA": {
+          "ava_mAP": 91.7741,
+          "col_F1": 88.2213
+        },
+        "w/o Gated FFN": {
+          "ava_mAP": 92.689,
+          "col_F1": 88.0542
+        },
+        "w/o Cross-Speaker Attn": {
+          "ava_mAP": 90.0691,
+          "col_F1": 90.8874
+        }
+      }
+    },
+    "4": {
+      "ava_mAP": 93.0768,
+      "ava_latency_ms": 2.4326,
+      "col_F1": 90.3142,
+      "col_latency_ms": 2.3118,
+      "col_per_speaker": {
+        "Abbas": 99.0863,
+        "Bell": 89.9811,
+        "Boll": 81.8182,
+        "Lieb": 93.5065,
+        "Long": 89.2368,
+        "Sick": 88.2562
+      },
+      "allframes_mAP": 92.6845,
+      "ablation": {
+        "Full Model": {
+          "ava_mAP": 93.0768,
+          "col_F1": 90.3142
+        },
+        "w/o Scale Attention": {
+          "ava_mAP": 93.2248,
+          "col_F1": 90.8252
+        },
+        "w/o Buffer MHA": {
+          "ava_mAP": 91.9907,
+          "col_F1": 89.5531
+        },
+        "w/o Gated FFN": {
+          "ava_mAP": 92.739,
+          "col_F1": 89.2205
+        },
+        "w/o Cross-Speaker Attn": {
+          "ava_mAP": 91.2702,
+          "col_F1": 90.5941
+        }
+      }
+    },
+    "5": {
+      "ava_mAP": 92.7583,
+      "ava_latency_ms": 2.6174,
+      "col_F1": 90.7899,
+      "col_latency_ms": 2.5672,
+      "col_per_speaker": {
+        "Abbas": 99.0863,
+        "Bell": 91.4579,
+        "Boll": 82.6185,
+        "Lieb": 93.2907,
+        "Long": 89.9901,
+        "Sick": 88.296
+      },
+      "allframes_mAP": 92.3978,
+      "ablation": {
+        "Full Model": {
+          "ava_mAP": 92.7584,
+          "col_F1": 90.7899
+        },
+        "w/o Scale Attention": {
+          "ava_mAP": 92.9767,
+          "col_F1": 90.546
+        },
+        "w/o Buffer MHA": {
+          "ava_mAP": 91.7216,
+          "col_F1": 89.2225
+        },
+        "w/o Gated FFN": {
+          "ava_mAP": 92.7666,
+          "col_F1": 90.4378
+        },
+        "w/o Cross-Speaker Attn": {
+          "ava_mAP": 90.9455,
+          "col_F1": 91.1712
+        }
+      }
+    }
+  },
+  "aggregated_ava": {
+    "teacher_mAP": 90.5689,
+    "student_mAP_mean": 92.9202,
+    "student_mAP_std": 0.2583,
+    "student_latency_mean": 2.4781,
+    "student_latency_std": 0.0709
+  },
+  "aggregated_columbia": {
+    "teacher_avg_F1": 90.0997,
+    "student_avg_F1_mean": 90.6088,
+    "student_avg_F1_std": 0.2792,
+    "student_latency_mean": 2.5081,
+    "student_latency_std": 0.1381,
+    "per_speaker": {
+      "Abbas": {
+        "teacher_F1": 99.187,
+        "student_F1_mean": 99.1064,
+        "student_F1_std": 0.0403
+      },
+      "Bell": {
+        "teacher_F1": 91.5864,
+        "student_F1_mean": 90.8534,
+        "student_F1_std": 0.5679
+      },
+      "Boll": {
+        "teacher_F1": 77.7528,
+        "student_F1_mean": 82.1545,
+        "student_F1_std": 0.627
+      },
+      "Lieb": {
+        "teacher_F1": 93.4211,
+        "student_F1_mean": 93.4629,
+        "student_F1_std": 0.235
+      },
+      "Long": {
+        "teacher_F1": 91.4345,
+        "student_F1_mean": 89.5223,
+        "student_F1_std": 0.6762
+      },
+      "Sick": {
+        "teacher_F1": 87.2167,
+        "student_F1_mean": 88.5532,
+        "student_F1_std": 0.2582
+      }
+    }
+  },
+  "aggregated_degradation": {
+    "teacher_offline_mAP": 95.5201,
+    "teacher_streaming_mAP": 90.5689,
+    "student_allframes_mean": 92.5254,
+    "student_allframes_std": 0.2188,
+    "student_streaming_mean": 92.9202,
+    "student_streaming_std": 0.2583
+  },
+  "aggregated_ablation": [
+    {
+      "name": "Full Model",
+      "ava_mAP_mean": 92.9202,
+      "ava_mAP_std": 0.2583,
+      "col_F1_mean": 90.6088,
+      "col_F1_std": 0.2792
+    },
+    {
+      "name": "w/o Scale Attention",
+      "ava_mAP_mean": 93.08,
+      "ava_mAP_std": 0.2395,
+      "col_F1_mean": 90.753,
+      "col_F1_std": 0.3393
+    },
+    {
+      "name": "w/o Buffer MHA",
+      "ava_mAP_mean": 91.9668,
+      "ava_mAP_std": 0.2274,
+      "col_F1_mean": 89.1844,
+      "col_F1_std": 0.5271
+    },
+    {
+      "name": "w/o Gated FFN",
+      "ava_mAP_mean": 92.7918,
+      "ava_mAP_std": 0.1803,
+      "col_F1_mean": 89.4992,
+      "col_F1_std": 0.944
+    },
+    {
+      "name": "w/o Cross-Speaker Attn",
+      "ava_mAP_mean": 90.8116,
+      "ava_mAP_std": 0.425,
+      "col_F1_mean": 91.2441,
+      "col_F1_std": 0.6783
+    }
+  ]
+}
