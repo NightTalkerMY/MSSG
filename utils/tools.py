@@ -61,8 +61,8 @@ def preprocess_AVA(args):
     # ```
 
     download_csv(args) # Take 1 minute 
-    # download_videos(args) # Take 6 hours
-    # extract_audio(args) # Take 1 hour
+    download_videos(args) # Take 6 hours
+    extract_audio(args) # Take 1 hour
     extract_audio_clips(args) # Take 3 minutes
     extract_video_clips(args) # Take about 2 days
 
@@ -77,16 +77,31 @@ def download_csv(args):
 
 def download_videos(args): 
     # Take 6 hours to download the original movies, follow this repository: https://github.com/cvdfoundation/ava-dataset
-    for dataType in ['trainval', 'test']:
+    for dataType in ['trainval']:
         fileList = open('%s/%s_file_list.txt'%(args.trialPathAVA, dataType)).read().splitlines()   
         outFolder = '%s/%s'%(args.visualOrigPathAVA, dataType)
         for fileName in fileList:
-            cmd = "wget -P %s https://s3.amazonaws.com/ava-dataset/%s/%s"%(outFolder, dataType, fileName)
-            subprocess.call(cmd, shell=True, stdout=None)
+            # cmd = "wget -P %s https://s3.amazonaws.com/ava-dataset/%s/%s"%(outFolder, dataType, fileName)
+            # subprocess.call(cmd, shell=True, stdout=None)
+            os.makedirs(outFolder, exist_ok=True)
+
+            url = f"https://s3.amazonaws.com/ava-dataset/{dataType}/{fileName}"
+            output_path = os.path.join(outFolder, fileName)
+
+            cmd = [
+                "curl.exe",
+                "-L",
+                "--fail",
+                "--retry", "3",
+                "-C", "-",
+                "-o", output_path,
+                url,
+            ]
+            subprocess.run(cmd, check=True)
 
 def extract_audio(args):
     # Take 1 hour to extract the audio from movies
-    for dataType in ['trainval', 'test']:
+    for dataType in ['trainval']:
         inpFolder = '%s/%s'%(args.visualOrigPathAVA, dataType)
         outFolder = '%s/%s'%(args.audioOrigPathAVA, dataType)
         os.makedirs(outFolder, exist_ok = True)
