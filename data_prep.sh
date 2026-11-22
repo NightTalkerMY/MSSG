@@ -148,7 +148,7 @@ if [ $stage -eq 7 ]; then
         python ./local/get_leaf_dir_list.py --AVADataPath=$AVADataPath/clips_videos/$name --out_file=./predata/face_process/${name}_list
     done
     
-    nj=64
+    nj=4
     mkdir -p ./predata/face_process/split
     for name in train val; do
         echo deal with $name

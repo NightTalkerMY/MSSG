@@ -18,9 +18,7 @@ realtime_epoch_mse_ce_kl/
 test_video/
 
 # Ignore everything inside predata, EXCEPT pretrain_model
-predata/*
-!predata/pretrain_model/
-!predata/pretrain_model
+predata
 
 # Standard Python exclusions
 __pycache__/
