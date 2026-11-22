@@ -4,6 +4,7 @@ Do not start multi-seed training until the single-seed results have been reviewe
 
 1. Finish graph feature extraction stages 2 through 8.
 2. Run `bash run_catt_plan.sh audit-inputs`.
+   Then run `bash run_catt_plan.sh audit-inputs-deep` before archiving crop folders.
 3. Run `bash run_catt_plan.sh build-train-cache`.
 4. Run `bash run_catt_plan.sh build-val-cache`.
 5. Run `bash run_catt_plan.sh audit-caches`.
