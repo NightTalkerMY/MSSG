@@ -179,16 +179,16 @@ if [ $stage -eq 8 ]; then
             nj=33
         fi
         echo deal with $name 
-        find $(pwd)/predata/csv_split/$name -type f > ./predata/facebody_large_process/${name}_list
+        find "./predata/csv_split/$name" -type f > ./predata/facebody_large_process/${name}_list
         file_split_scp=""
         for job in $(seq $nj); do
             file_split_scp="$file_split_scp ./predata/facebody_large_process/split/${name}_file_list.$job"
         done
         ./local/utils/split_scp.pl ./predata/facebody_large_process/${name}_list $file_split_scp
         mkdir -p ./log/facebody_large_process
-        mkdir -p $AVADataPath/clips_videos_face_body
+        mkdir -p "$AVADataPath/clips_videos_face_body_large"
         ./local/utils/run.pl JOB=1:$nj \
-        ./log/facebody_large_process/${set}/facebody_large_process.JOB.log \
+        ./log/facebody_large_process/facebody_large_process.JOB.log \
             python ./local/prepare_facebody_large.py --input_file_list=./predata/facebody_large_process/split/${name}_file_list.JOB \
                                                --AVADataPath $AVADataPath \
                                                --out_path=$AVADataPath/clips_videos_face_body_large \
