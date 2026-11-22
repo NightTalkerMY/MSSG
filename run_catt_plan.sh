@@ -12,6 +12,7 @@ case "$command_name" in
     download-columbia) "$python_cmd" columbia/download_columbia.py ;;
     audit-inputs) "$python_cmd" proposed/audit_student_inputs.py ;;
     audit-inputs-deep) "$python_cmd" proposed/audit_student_features_deep.py ;;
+    prepare-ava-labels) "$python_cmd" proposed/prepare_ava_cache_labels.py ;;
     build-train-cache) "$python_cmd" proposed/build_ava_cache.py --split train ;;
     build-val-cache) "$python_cmd" proposed/build_ava_cache.py --split val ;;
     audit-caches) "$python_cmd" proposed/audit_student_caches.py ;;
@@ -40,6 +41,7 @@ Usage: bash run_catt_plan.sh COMMAND
   download-columbia  Download and inventory Columbia video and LR-ASD labels.
   audit-inputs       Verify all seven AVA CSV families.
   audit-inputs-deep  Read and validate every feature CSV row and value.
+  prepare-ava-labels Create/audit per-video AVA labels needed by cache building.
   build-train-cache  Build reusable AVA training tensors.
   build-val-cache    Build reusable AVA validation tensors.
   audit-caches       Validate both tensor caches.
