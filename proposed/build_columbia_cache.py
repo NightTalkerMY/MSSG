@@ -1,6 +1,8 @@
 import os
 import csv
 import ast
+import argparse
+from pathlib import Path
 import torch
 import numpy as np
 from tqdm import tqdm
@@ -41,11 +43,24 @@ def load_columbia_aux_features(csv_path):
             feat_dict[key] = decode_feature(row[2])  # row[2] = feat_v (visual only)
     return feat_dict
 
+def parse_args():
+    root = Path(__file__).resolve().parents[1]
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--columbia-predata", type=Path,
+                        default=root / "data" / "Columbia" / "predata")
+    parser.add_argument("--output-dir", type=Path,
+                        default=root / "realtime" / "columbia_cached_chunks")
+    return parser.parse_args()
+
+
 def main():
+    args = parse_args()
     print("--- Booting Columbia Cache Builder ---")
     
     # 1. Load the Labels & Bounding Boxes
-    label_csv = r"D:\FYP\MSSG\data\Columbia\predata\csv_split\train\col.csv"
+    label_csv = args.columbia_predata / "csv_split" / "train" / "col.csv"
+    if not label_csv.is_file():
+        raise SystemExit(f"Missing Columbia labels: {label_csv}")
     timestamps = {}
     
     print("Parsing Ground Truth Labels...")
@@ -82,7 +97,7 @@ def main():
     print(f"Found {len(sorted_ts)} unique frames in the Columbia video.")
 
     # 2. Load Features
-    base_feat_dir = r"D:\FYP\MSSG\data\Columbia\predata"
+    base_feat_dir = args.columbia_predata
     
     print("Loading base features (Audio, Teacher, Face Visual)...")
     base_feats = load_columbia_base_features(os.path.join(base_feat_dir, "face_feats_info", "train", "col.csv"))
@@ -99,8 +114,11 @@ def main():
         aux_feat_dicts.append(load_columbia_aux_features(os.path.join(base_feat_dir, folder, "train", "col.csv")))
 
     # 3. Build the 50-Frame Chunks
-    output_dir = r"D:\FYP\MSSG\realtime\columbia_cached_chunks"
-    os.makedirs(output_dir, exist_ok=True)
+    output_dir = args.output_dir
+    existing = sorted(output_dir.glob("col_cache_part_*.pt")) if output_dir.is_dir() else []
+    if existing:
+        raise SystemExit(f"Refusing to mix caches: {len(existing)} existing files in {output_dir}")
+    output_dir.mkdir(parents=True, exist_ok=True)
     
     buffer_size = 50
     stride = 25

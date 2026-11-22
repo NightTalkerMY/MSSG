@@ -15,5 +15,13 @@ Do not start multi-seed training until the single-seed results have been reviewe
 9. Evaluate each selected checkpoint on Columbia only after AVA-based selection.
 10. Run `bash run_catt_plan.sh multi` only after explicit approval and if time remains.
 
+Prepare the held-out Columbia cache independently with:
+
+1. `bash run_catt_plan.sh audit-columbia-inputs`
+2. `bash run_catt_plan.sh build-columbia-cache`
+3. `bash run_catt_plan.sh audit-columbia-cache`
+
+Building this cache does not authorize its use for training or checkpoint selection.
+
 The training program selects checkpoints using AVA final-frame validation mAP.
 It never loads Columbia during training or checkpoint selection.
