@@ -4,7 +4,8 @@ python_cmd="${PYTHON:-python}"
 command_name="${1:-help}"
 
 run_training() {
-    "$python_cmd" proposed/train_student_seeded.py --variant "$1" --seed "$2" --epochs "$3" --run-name "$4"
+    PYTHONHASHSEED="$2" "$python_cmd" proposed/train_student_seeded.py \
+        --variant "$1" --seed "$2" --epochs "$3" --run-name "$4"
 }
 
 case "$command_name" in

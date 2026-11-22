@@ -118,7 +118,9 @@ class HoloPiStudentDataset(Dataset):
                         unique_tracks.update(timeline[t].keys())
                     
                     # Limit to max_speakers to keep tensors perfectly rectangular
-                    active_tracks = list(unique_tracks)[:self.max_speakers]
+                    # Stable ordering makes cache membership reproducible across
+                    # machines and Python hash seeds.
+                    active_tracks = sorted(unique_tracks)[:self.max_speakers]
                     
                     self.chunks.append({
                         'clip_id': clip_id,

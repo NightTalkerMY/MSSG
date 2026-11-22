@@ -118,7 +118,8 @@ def main():
             for person in timestamps[ts]:
                 unique_people.add(person['entity_id'])
                 
-        active_people = list(unique_people)[:max_speakers]
+        # Stable ordering makes cache membership reproducible across machines.
+        active_people = sorted(unique_people)[:max_speakers]
         
         v_tensor = np.zeros((max_speakers, buffer_size, 896), dtype=np.float32)
         a_tensor = np.zeros((max_speakers, buffer_size, 128), dtype=np.float32)
