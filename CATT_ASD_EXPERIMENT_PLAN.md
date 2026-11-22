@@ -17,9 +17,13 @@ Do not start multi-seed training until the single-seed results have been reviewe
 
 Prepare the held-out Columbia cache independently with:
 
-1. `bash run_catt_plan.sh audit-columbia-inputs`
-2. `bash run_catt_plan.sh build-columbia-cache`
-3. `bash run_catt_plan.sh audit-columbia-cache`
+1. `bash run_catt_plan.sh download-columbia`
+2. Visually validate boxes with `columbia/validate_boxes.py`.
+3. Run Columbia data preparation and feature extraction stages 0, 2, 4--8
+   and graph feature stages 2--8.
+4. `bash run_catt_plan.sh audit-columbia-inputs`
+5. `bash run_catt_plan.sh build-columbia-cache`
+6. `bash run_catt_plan.sh audit-columbia-cache`
 
 Building this cache does not authorize its use for training or checkpoint selection.
 

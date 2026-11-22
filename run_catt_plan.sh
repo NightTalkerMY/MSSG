@@ -9,6 +9,7 @@ run_training() {
 }
 
 case "$command_name" in
+    download-columbia) "$python_cmd" columbia/download_columbia.py ;;
     audit-inputs) "$python_cmd" proposed/audit_student_inputs.py ;;
     build-train-cache) "$python_cmd" proposed/build_ava_cache.py --split train ;;
     build-val-cache) "$python_cmd" proposed/build_ava_cache.py --split val ;;
@@ -35,6 +36,7 @@ case "$command_name" in
     help|*)
         cat <<'EOF'
 Usage: bash run_catt_plan.sh COMMAND
+  download-columbia  Download and inventory Columbia video and LR-ASD labels.
   audit-inputs       Verify all seven AVA CSV families.
   build-train-cache  Build reusable AVA training tensors.
   build-val-cache    Build reusable AVA validation tensors.
