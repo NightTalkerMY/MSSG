@@ -81,6 +81,19 @@ case "$command_name" in
     evaluate-lrasd-columbia) "$python_cmd" proposed/evaluate_lrasd_streaming.py --dataset columbia ;;
     evaluate-lrasd-native-ava) "$python_cmd" proposed/evaluate_lrasd_native.py --dataset ava ;;
     evaluate-lrasd-native-columbia) "$python_cmd" proposed/evaluate_lrasd_native.py --dataset columbia ;;
+    evaluate-catt-seed42)
+        for run_name in ce_mse_seed_42 ce_only_seed_42; do
+            for dataset in ava columbia; do
+                result="realtime/catt_results/$run_name/$dataset/result.json"
+                if [[ -f "$result" ]]; then
+                    echo "Completed result exists; skipping $run_name $dataset"
+                else
+                    "$python_cmd" proposed/evaluate_student_checkpoint.py \
+                        --run-name "$run_name" --dataset "$dataset"
+                fi
+            done
+        done
+        ;;
     notify-test) echo "Telegram notification test completed." ;;
     smoke) run_training ce_mse 42 1 smoke_ce_mse_seed_42 ;;
     single) run_training ce_mse 42 50 ce_mse_seed_42 ;;
@@ -121,6 +134,7 @@ Usage: bash run_catt_plan.sh COMMAND [--notify]
   evaluate-lrasd-columbia Evaluate official LR-ASD weights on matched Columbia 50-frame windows.
   evaluate-lrasd-native-ava      Optional native LR-ASD full-track evaluation on AVA.
   evaluate-lrasd-native-columbia Optional native LR-ASD full-track evaluation on Columbia.
+  evaluate-catt-seed42 Evaluate retained CE+MSE and CE-only seed-42 checkpoints on both datasets.
   notify-test         Test optional Telegram start/success notifications.
   smoke              One epoch, seed 42, CE+MSE; pipeline check only.
   single             Full 50-epoch proposed run, seed 42.
