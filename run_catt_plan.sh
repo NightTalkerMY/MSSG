@@ -112,6 +112,22 @@ case "$command_name" in
             fi
         done
         ;;
+    train-catt-projected-cosine)
+        run_name="ce_projected_cosine_beta_01_seed_42"
+        output="realtime/experiments/$run_name"
+        if [[ -f "$output/run_manifest.json" ]]; then
+            echo "Completed run exists; skipping $run_name"
+        else
+            PYTHONHASHSEED=42 "$python_cmd" \
+                proposed/train_student_projected_cosine.py \
+                --seed 42 --epochs 50 --distill-weight 0.1 \
+                --run-name "$run_name"
+        fi
+        ;;
+    evaluate-catt-projected-cosine-ava)
+        "$python_cmd" proposed/evaluate_student_checkpoint.py \
+            --run-name ce_projected_cosine_beta_01_seed_42 --dataset ava
+        ;;
     notify-test) echo "Telegram notification test completed." ;;
     smoke) run_training ce_mse 42 1 smoke_ce_mse_seed_42 ;;
     single) run_training ce_mse 42 50 ce_mse_seed_42 ;;
@@ -154,6 +170,8 @@ Usage: bash run_catt_plan.sh COMMAND [--notify]
   evaluate-lrasd-native-columbia Optional native LR-ASD full-track evaluation on Columbia.
   evaluate-catt-seed42 Evaluate retained CE+MSE and CE-only seed-42 checkpoints on both datasets.
   tune-catt-alpha     Train alpha=0.6 and 0.8 seed-42 candidates; select by AVA only.
+  train-catt-projected-cosine Train the projected-cosine candidate on AVA only.
+  evaluate-catt-projected-cosine-ava Evaluate its selected checkpoint on AVA only.
   notify-test         Test optional Telegram start/success notifications.
   smoke              One epoch, seed 42, CE+MSE; pipeline check only.
   single             Full 50-epoch proposed run, seed 42.
