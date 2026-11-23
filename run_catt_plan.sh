@@ -2,6 +2,58 @@
 set -Eeuo pipefail
 python_cmd="${PYTHON:-python}"
 command_name="${1:-help}"
+notify_enabled=false
+
+if [[ $# -gt 0 ]]; then
+    shift
+fi
+for option in "$@"; do
+    case "$option" in
+        --notify) notify_enabled=true ;;
+        *)
+            echo "Unknown option: $option"
+            echo "Supported optional flag: --notify"
+            exit 2
+            ;;
+    esac
+done
+
+notify_event() {
+    local status="$1"
+    local elapsed="${2:-0}"
+    local exit_code="${3:-}"
+    if [[ "$notify_enabled" != true ]]; then
+        return 0
+    fi
+    local arguments=(
+        proposed/telegram_notify.py
+        --status "$status"
+        --command "$command_name"
+        --elapsed-seconds "$elapsed"
+    )
+    if [[ -n "$exit_code" ]]; then
+        arguments+=(--exit-code "$exit_code")
+    fi
+    "$python_cmd" "${arguments[@]}" || true
+}
+
+started_epoch=$(date +%s)
+finish_notification() {
+    local status=$?
+    trap - EXIT
+    local elapsed=$(( $(date +%s) - started_epoch ))
+    if [[ $status -eq 0 ]]; then
+        notify_event succeeded "$elapsed" "$status"
+    else
+        notify_event failed "$elapsed" "$status"
+    fi
+    exit "$status"
+}
+
+if [[ "$notify_enabled" == true ]]; then
+    notify_event started 0
+    trap finish_notification EXIT
+fi
 
 run_training() {
     PYTHONHASHSEED="$2" "$python_cmd" proposed/train_student_seeded.py \
@@ -23,6 +75,7 @@ case "$command_name" in
     evaluate-mssg-columbia) "$python_cmd" proposed/evaluate_mssg_native.py --dataset columbia ;;
     evaluate-lrasd-ava) "$python_cmd" proposed/evaluate_lrasd_native.py --dataset ava ;;
     evaluate-lrasd-columbia) "$python_cmd" proposed/evaluate_lrasd_native.py --dataset columbia ;;
+    notify-test) echo "Telegram notification test completed." ;;
     smoke) run_training ce_mse 42 1 smoke_ce_mse_seed_42 ;;
     single) run_training ce_mse 42 50 ce_mse_seed_42 ;;
     single-ablation) run_training ce_only 42 50 ce_only_seed_42 ;;
@@ -41,7 +94,7 @@ case "$command_name" in
         ;;
     help|*)
         cat <<'EOF'
-Usage: bash run_catt_plan.sh COMMAND
+Usage: bash run_catt_plan.sh COMMAND [--notify]
   download-columbia  Download and inventory Columbia video and LR-ASD labels.
   audit-inputs       Verify all seven AVA CSV families.
   audit-inputs-deep  Read and validate every feature CSV row and value.
@@ -56,10 +109,14 @@ Usage: bash run_catt_plan.sh COMMAND
   evaluate-mssg-columbia Evaluate retained MSSG on native Columbia graphs.
   evaluate-lrasd-ava     Evaluate official LR-ASD weights on AVA tracks.
   evaluate-lrasd-columbia Evaluate official LR-ASD weights on corrected Columbia tracks.
+  notify-test         Test optional Telegram start/success notifications.
   smoke              One epoch, seed 42, CE+MSE; pipeline check only.
   single             Full 50-epoch proposed run, seed 42.
   single-ablation    Full 50-epoch CE-only run, seed 42.
   multi              Three paired seeds; run only after reviewing single-seed results.
+
+Optional:
+  --notify           Read .env and send Telegram start/success/failure messages.
 EOF
         ;;
 esac

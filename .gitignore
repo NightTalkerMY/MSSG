@@ -1,5 +1,6 @@
 # Specifically requested exclusions
 venv/
+.env
 data/
 log/
 graphs/
