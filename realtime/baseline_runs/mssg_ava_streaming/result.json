@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "method": "MSSG",
+  "dataset": "ava",
+  "protocol": "50-frame causal-window simulation; final-position predictions only",
+  "window_length": 50,
+  "evaluated_position": 49,
+  "cache_directory": "D:\\New folder\\MSSG\\realtime\\val_cached_chunks",
+  "cache_files": 10,
+  "windows_scanned": 19935,
+  "predictions": 28549,
+  "checkpoint": "D:\\New folder\\MSSG\\exps\\graph_training\\graph_2000\\chckpoint_best.pt",
+  "checkpoint_sha256": "6729dbc8e4128251f10ea08ba09b9d8553933c44c9d8e9ffd4f74213a1248e2b",
+  "encoder_sources": {
+    "face": [
+      "model_0040.model",
+      "model_0039.model",
+      "model_0038.model",
+      "model_0037.model",
+      "model_0036.model",
+      "model_0035.model",
+      "model_0034.model"
+    ],
+    "face_body": [
+      "model_0052.model",
+      "model_0051.model",
+      "model_0050.model",
+      "model_0049.model",
+      "model_0048.model",
+      "model_0047.model",
+      "model_0046.model"
+    ],
+    "face_large": [
+      "model_0044.model",
+      "model_0043.model",
+      "model_0042.model",
+      "model_0041.model",
+      "model_0040.model",
+      "model_0039.model",
+      "model_0038.model"
+    ],
+    "background": [
+      "background_model.model"
+    ],
+    "face_small": [
+      "model_0047.model",
+      "model_0046.model",
+      "model_0045.model",
+      "model_0044.model",
+      "model_0043.model",
+      "model_0042.model",
+      "model_0041.model"
+    ],
+    "face_down": [
+      "model_0041.model",
+      "model_0040.model",
+      "model_0039.model",
+      "model_0038.model",
+      "model_0037.model",
+      "model_0036.model",
+      "model_0035.model"
+    ],
+    "face_body_large": [
+      "model_0043.model",
+      "model_0042.model",
+      "model_0041.model",
+      "model_0040.model",
+      "model_0039.model",
+      "model_0038.model",
+      "model_0037.model"
+    ]
+  },
+  "device": "cuda",
+  "mssg_graph_parameters": 19220,
+  "seven_bigru_parameters": 1387008,
+  "latency_scope": "seven retained BiGRUs, final-frame graph assembly, and MSSG inference; includes input transfer",
+  "latency_mean_ms_per_window": 4.484458107175118,
+  "latency_median_ms_per_window": 4.055249970406294,
+  "ava_average_precision_percent": 90.60585742704568,
+  "prediction_file": "D:\\New folder\\MSSG\\realtime\\baseline_runs\\mssg_ava_streaming\\predictions.csv"
+}

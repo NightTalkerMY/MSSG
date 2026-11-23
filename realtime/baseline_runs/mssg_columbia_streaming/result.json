@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "method": "MSSG",
+  "dataset": "columbia",
+  "protocol": "50-frame causal-window simulation; final-position predictions only",
+  "window_length": 50,
+  "evaluated_position": 49,
+  "cache_directory": "D:\\New folder\\MSSG\\realtime\\columbia_cached_chunks",
+  "cache_files": 2,
+  "windows_scanned": 2719,
+  "predictions": 5971,
+  "checkpoint": "D:\\New folder\\MSSG\\exps\\graph_training\\graph_2000\\chckpoint_best.pt",
+  "checkpoint_sha256": "6729dbc8e4128251f10ea08ba09b9d8553933c44c9d8e9ffd4f74213a1248e2b",
+  "encoder_sources": {
+    "face": [
+      "model_0040.model",
+      "model_0039.model",
+      "model_0038.model",
+      "model_0037.model",
+      "model_0036.model",
+      "model_0035.model",
+      "model_0034.model"
+    ],
+    "face_body": [
+      "model_0052.model",
+      "model_0051.model",
+      "model_0050.model",
+      "model_0049.model",
+      "model_0048.model",
+      "model_0047.model",
+      "model_0046.model"
+    ],
+    "face_large": [
+      "model_0044.model",
+      "model_0043.model",
+      "model_0042.model",
+      "model_0041.model",
+      "model_0040.model",
+      "model_0039.model",
+      "model_0038.model"
+    ],
+    "background": [
+      "background_model.model"
+    ],
+    "face_small": [
+      "model_0047.model",
+      "model_0046.model",
+      "model_0045.model",
+      "model_0044.model",
+      "model_0043.model",
+      "model_0042.model",
+      "model_0041.model"
+    ],
+    "face_down": [
+      "model_0041.model",
+      "model_0040.model",
+      "model_0039.model",
+      "model_0038.model",
+      "model_0037.model",
+      "model_0036.model",
+      "model_0035.model"
+    ],
+    "face_body_large": [
+      "model_0043.model",
+      "model_0042.model",
+      "model_0041.model",
+      "model_0040.model",
+      "model_0039.model",
+      "model_0038.model",
+      "model_0037.model"
+    ]
+  },
+  "device": "cuda",
+  "mssg_graph_parameters": 19220,
+  "seven_bigru_parameters": 1387008,
+  "latency_scope": "seven retained BiGRUs, final-frame graph assembly, and MSSG inference; includes input transfer",
+  "latency_mean_ms_per_window": 4.348300625688289,
+  "latency_median_ms_per_window": 4.0059000020846725,
+  "columbia_per_speaker": {
+    "Abbas": {
+      "predictions": 497,
+      "best_f1_percent": 99.1869918698687,
+      "best_threshold": 0.16553784906864166
+    },
+    "Bell": {
+      "predictions": 1496,
+      "best_f1_percent": 92.73670557712249,
+      "best_threshold": 0.3975583016872406
+    },
+    "Boll": {
+      "predictions": 603,
+      "best_f1_percent": 78.35497835492836,
+      "best_threshold": 0.39685991406440735
+    },
+    "Lieb": {
+      "predictions": 656,
+      "best_f1_percent": 92.90322580640161,
+      "best_threshold": 0.4068572521209717
+    },
+    "Long": {
+      "predictions": 1175,
+      "best_f1_percent": 89.62739174214538,
+      "best_threshold": 0.40135300159454346
+    },
+    "Sick": {
+      "predictions": 1544,
+      "best_f1_percent": 88.08864265923002,
+      "best_threshold": 0.423152893781662
+    }
+  },
+  "columbia_six_speaker_macro_best_f1_percent": 90.14965600161611,
+  "prediction_file": "D:\\New folder\\MSSG\\realtime\\baseline_runs\\mssg_columbia_streaming\\predictions.csv"
+}

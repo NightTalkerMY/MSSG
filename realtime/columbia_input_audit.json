@@ -1,0 +1,56 @@
+{
+  "predata": "D:\\New folder\\MSSG\\data\\Columbia\\predata",
+  "label_file": "D:\\New folder\\MSSG\\data\\Columbia\\predata\\csv_split\\train\\col.csv",
+  "families": {
+    "face_feats_info": {
+      "path": "D:\\New folder\\MSSG\\data\\Columbia\\predata\\face_feats_info\\train\\col.csv",
+      "rows": 149358,
+      "nonempty": true,
+      "missing_against_face": [],
+      "unexpected_against_face": []
+    },
+    "face_body_large_feats_info": {
+      "path": "D:\\New folder\\MSSG\\data\\Columbia\\predata\\face_body_large_feats_info\\train\\col.csv",
+      "rows": 149358,
+      "nonempty": true,
+      "missing_against_face": [],
+      "unexpected_against_face": []
+    },
+    "face.body_feats_info": {
+      "path": "D:\\New folder\\MSSG\\data\\Columbia\\predata\\face.body_feats_info\\train\\col.csv",
+      "rows": 149358,
+      "nonempty": true,
+      "missing_against_face": [],
+      "unexpected_against_face": []
+    },
+    "face_large_feats_info": {
+      "path": "D:\\New folder\\MSSG\\data\\Columbia\\predata\\face_large_feats_info\\train\\col.csv",
+      "rows": 149358,
+      "nonempty": true,
+      "missing_against_face": [],
+      "unexpected_against_face": []
+    },
+    "background_feats_info": {
+      "path": "D:\\New folder\\MSSG\\data\\Columbia\\predata\\background_feats_info\\train\\col.csv",
+      "rows": 149358,
+      "nonempty": true,
+      "missing_against_face": [],
+      "unexpected_against_face": []
+    },
+    "face_small_feats_info": {
+      "path": "D:\\New folder\\MSSG\\data\\Columbia\\predata\\face_small_feats_info\\train\\col.csv",
+      "rows": 149358,
+      "nonempty": true,
+      "missing_against_face": [],
+      "unexpected_against_face": []
+    },
+    "face_down_feats_info": {
+      "path": "D:\\New folder\\MSSG\\data\\Columbia\\predata\\face_down_feats_info\\train\\col.csv",
+      "rows": 149358,
+      "nonempty": true,
+      "missing_against_face": [],
+      "unexpected_against_face": []
+    }
+  },
+  "passed": true
+}
