@@ -21,7 +21,8 @@ Prepare the held-out Columbia cache independently with:
 
 1. `bash run_catt_plan.sh download-columbia`
 2. Visually validate boxes with `columbia/validate_boxes.py`.
-3. Run Columbia data preparation and feature extraction stages 0, 2, 4--8
+3. Run Columbia label correction stage 0, visually validate the corrected
+   labels, then run data preparation stages 1, 2 and 4--8
    and graph feature stages 2--8.
 4. `bash run_catt_plan.sh audit-columbia-inputs`
 5. `bash run_catt_plan.sh build-columbia-cache`

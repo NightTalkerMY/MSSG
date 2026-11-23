@@ -7,14 +7,25 @@ ColPreData="./data/Columbia/predata"
 nj=1 
 
 # -------------------------------------------------------------------------
-# STAGE 0: The AVA Illusion Setup
+# STAGE 0: Create an audited corrected copy of the downloaded labels
 # -------------------------------------------------------------------------
 if [ $stage -eq 0 ]; then
+    echo "Correcting known Columbia track identity mismatches..."
+    python columbia/correct_columbia_labels.py
+    echo "Columbia label correction complete. Inspect the correction manifest before stage 1."
+fi
+
+# -------------------------------------------------------------------------
+# STAGE 1: Build the AVA-style Columbia inputs from corrected labels
+# -------------------------------------------------------------------------
+if [ $stage -eq 1 ]; then
     echo "Setting up Columbia Preprocessing..."
 
-    label_path=./columbia/colDataPath/col_labels
-    if [[ ! -d "$label_path" && -d ./columbia/colDataPath/real_labels ]]; then
-        label_path=./columbia/colDataPath/real_labels
+    label_path=./columbia/colDataPath/col_labels_corrected
+    if [[ ! -d "$label_path" ]]; then
+        echo "Missing corrected labels: $label_path"
+        echo "Run: bash columbia/data_prep_columbia.sh 0"
+        exit 1
     fi
     python columbia/prep_columbia.py \
         --videoPath ./columbia/colDataPath/col.mp4 \
