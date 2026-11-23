@@ -56,8 +56,14 @@ if [[ "$notify_enabled" == true ]]; then
 fi
 
 run_training() {
-    PYTHONHASHSEED="$2" "$python_cmd" proposed/train_student_seeded.py \
+    local arguments=(
+        proposed/train_student_seeded.py
         --variant "$1" --seed "$2" --epochs "$3" --run-name "$4"
+    )
+    if [[ -n "${5:-}" ]]; then
+        arguments+=(--alpha "$5")
+    fi
+    PYTHONHASHSEED="$2" "$python_cmd" "${arguments[@]}"
 }
 
 case "$command_name" in
@@ -92,6 +98,18 @@ case "$command_name" in
                         --run-name "$run_name" --dataset "$dataset"
                 fi
             done
+        done
+        ;;
+    tune-catt-alpha)
+        for alpha_spec in "0.6:ce_mse_alpha_06_seed_42" "0.8:ce_mse_alpha_08_seed_42"; do
+            alpha="${alpha_spec%%:*}"
+            run_name="${alpha_spec#*:}"
+            output="realtime/experiments/$run_name"
+            if [[ -f "$output/run_manifest.json" ]]; then
+                echo "Completed run exists; skipping $run_name"
+            else
+                run_training ce_mse 42 50 "$run_name" "$alpha"
+            fi
         done
         ;;
     notify-test) echo "Telegram notification test completed." ;;
@@ -135,6 +153,7 @@ Usage: bash run_catt_plan.sh COMMAND [--notify]
   evaluate-lrasd-native-ava      Optional native LR-ASD full-track evaluation on AVA.
   evaluate-lrasd-native-columbia Optional native LR-ASD full-track evaluation on Columbia.
   evaluate-catt-seed42 Evaluate retained CE+MSE and CE-only seed-42 checkpoints on both datasets.
+  tune-catt-alpha     Train alpha=0.6 and 0.8 seed-42 candidates; select by AVA only.
   notify-test         Test optional Telegram start/success notifications.
   smoke              One epoch, seed 42, CE+MSE; pipeline check only.
   single             Full 50-epoch proposed run, seed 42.
