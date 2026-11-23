@@ -73,8 +73,10 @@ case "$command_name" in
     audit-columbia-cache) "$python_cmd" proposed/audit_columbia_cache.py ;;
     build-mssg-ava-val-graphs) MSSG_GRAPH_SPLITS=val bash graph_init.sh 9 ;;
     build-mssg-ava-graphs) bash graph_init.sh 9 ;;
-    evaluate-mssg-ava) "$python_cmd" proposed/evaluate_mssg_native.py --dataset ava ;;
-    evaluate-mssg-columbia) "$python_cmd" proposed/evaluate_mssg_native.py --dataset columbia ;;
+    evaluate-mssg-ava) "$python_cmd" proposed/evaluate_mssg_streaming.py --dataset ava ;;
+    evaluate-mssg-columbia) "$python_cmd" proposed/evaluate_mssg_streaming.py --dataset columbia ;;
+    evaluate-mssg-native-ava) "$python_cmd" proposed/evaluate_mssg_native.py --dataset ava ;;
+    evaluate-mssg-native-columbia) "$python_cmd" proposed/evaluate_mssg_native.py --dataset columbia ;;
     evaluate-lrasd-ava) "$python_cmd" proposed/evaluate_lrasd_native.py --dataset ava ;;
     evaluate-lrasd-columbia) "$python_cmd" proposed/evaluate_lrasd_native.py --dataset columbia ;;
     notify-test) echo "Telegram notification test completed." ;;
@@ -109,8 +111,10 @@ Usage: bash run_catt_plan.sh COMMAND [--notify]
   audit-columbia-cache   Validate the held-out Columbia cache.
   build-mssg-ava-val-graphs Build only the native AVA validation graphs needed for evaluation.
   build-mssg-ava-graphs Build both native MSSG AVA training and validation graphs.
-  evaluate-mssg-ava      Evaluate retained MSSG on native AVA graphs.
-  evaluate-mssg-columbia Evaluate retained MSSG on native Columbia graphs.
+  evaluate-mssg-ava      Evaluate retained MSSG on AVA under the matched 50-frame protocol.
+  evaluate-mssg-columbia Evaluate retained MSSG on Columbia under the matched 50-frame protocol.
+  evaluate-mssg-native-ava      Optional native MSSG graph-node evaluation on AVA.
+  evaluate-mssg-native-columbia Optional native MSSG graph-node evaluation on Columbia.
   evaluate-lrasd-ava     Evaluate official LR-ASD weights on AVA tracks.
   evaluate-lrasd-columbia Evaluate official LR-ASD weights on corrected Columbia tracks.
   notify-test         Test optional Telegram start/success notifications.
