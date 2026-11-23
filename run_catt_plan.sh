@@ -145,6 +145,40 @@ case "$command_name" in
             done
         done
         ;;
+    multi-selected)
+        for seed in 42 123 2026; do
+            selected_run="ce_mse_alpha_08_seed_${seed}"
+            selected_output="realtime/experiments/$selected_run"
+            if [[ -f "$selected_output/run_manifest.json" ]]; then
+                echo "Completed run exists; skipping $selected_run"
+            else
+                run_training ce_mse "$seed" 50 "$selected_run" 0.8
+            fi
+
+            ablation_run="ce_only_seed_${seed}"
+            ablation_output="realtime/experiments/$ablation_run"
+            if [[ -f "$ablation_output/run_manifest.json" ]]; then
+                echo "Completed run exists; skipping $ablation_run"
+            else
+                run_training ce_only "$seed" 50 "$ablation_run"
+            fi
+        done
+        ;;
+    evaluate-catt-multiseed)
+        for seed in 42 123 2026; do
+            for run_name in "ce_mse_alpha_08_seed_${seed}" "ce_only_seed_${seed}"; do
+                for dataset in ava columbia; do
+                    result="realtime/catt_results/$run_name/$dataset/result.json"
+                    if [[ -f "$result" ]]; then
+                        echo "Completed result exists; skipping $run_name $dataset"
+                    else
+                        "$python_cmd" proposed/evaluate_student_checkpoint.py \
+                            --run-name "$run_name" --dataset "$dataset"
+                    fi
+                done
+            done
+        done
+        ;;
     help|*)
         cat <<'EOF'
 Usage: bash run_catt_plan.sh COMMAND [--notify]
@@ -176,7 +210,9 @@ Usage: bash run_catt_plan.sh COMMAND [--notify]
   smoke              One epoch, seed 42, CE+MSE; pipeline check only.
   single             Full 50-epoch proposed run, seed 42.
   single-ablation    Full 50-epoch CE-only run, seed 42.
-  multi              Three paired seeds; run only after reviewing single-seed results.
+  multi              Legacy alpha=0.4 paired-seed command; retained only for provenance.
+  multi-selected     Train selected alpha=0.8 and CE-only for paired seeds 42, 123, 2026.
+  evaluate-catt-multiseed Evaluate all selected and CE-only seed checkpoints on both datasets.
 
 Optional:
   --notify           Read .env and send Telegram start/success/failure messages.
