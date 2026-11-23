@@ -9,6 +9,7 @@ import csv
 import json
 import os
 import random
+import shutil
 import time
 from pathlib import Path
 
@@ -208,8 +209,13 @@ def main():
         "train_cache": str(args.train_cache.resolve()),
         "val_cache": str(args.val_cache.resolve()),
     }
-    (output_dir / "run_manifest.json").write_text(
-        json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
+    manifest_text = json.dumps(manifest, indent=2) + "\n"
+    (output_dir / "run_manifest.json").write_text(manifest_text, encoding="utf-8")
+    evidence_dir = root / "realtime" / "revision_evidence" / run_name
+    evidence_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(log_path, evidence_dir / "training_log.csv")
+    (evidence_dir / "run_manifest.json").write_text(
+        manifest_text, encoding="utf-8"
     )
     print(json.dumps(manifest, indent=2))
 
