@@ -3,7 +3,9 @@
 import argparse
 import json
 import os
+import shutil
 import socket
+import subprocess
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
@@ -43,6 +45,46 @@ def format_elapsed(seconds):
     hours, remainder = divmod(seconds, 3600)
     minutes, seconds = divmod(remainder, 60)
     return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+
+
+def send_with_urllib(token, payload):
+    request = urllib.request.Request(
+        f"https://api.telegram.org/bot{token}/sendMessage",
+        data=payload.encode("ascii"),
+        method="POST",
+    )
+    with urllib.request.urlopen(request, timeout=15) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+
+def send_with_curl(token, payload):
+    executable = shutil.which("curl.exe") or shutil.which("curl")
+    if not executable:
+        raise FileNotFoundError("curl executable is unavailable")
+    # Supplying the URL and body through curl's stdin configuration keeps the
+    # bot token out of the process arguments and ordinary command logs.
+    configuration = "\n".join((
+        f'url = "https://api.telegram.org/bot{token}/sendMessage"',
+        'request = "POST"',
+        'header = "Content-Type: application/x-www-form-urlencoded"',
+        f'data = "{payload}"',
+        "silent",
+        "show-error",
+        "fail-with-body",
+        "max-time = 20",
+        "",
+    ))
+    completed = subprocess.run(
+        [executable, "--config", "-"],
+        input=configuration,
+        text=True,
+        capture_output=True,
+        timeout=25,
+        check=False,
+    )
+    if completed.returncode != 0:
+        raise RuntimeError(f"curl exited with code {completed.returncode}")
+    return json.loads(completed.stdout)
 
 
 def main():
@@ -85,15 +127,15 @@ def main():
 
     payload = urllib.parse.urlencode(
         {"chat_id": chat_id, "text": "\n".join(lines)}
-    ).encode("utf-8")
-    request = urllib.request.Request(
-        f"https://api.telegram.org/bot{token}/sendMessage",
-        data=payload,
-        method="POST",
     )
     try:
-        with urllib.request.urlopen(request, timeout=15) as response:
-            result = json.loads(response.read().decode("utf-8"))
+        if os.name == "nt" and (shutil.which("curl.exe") or shutil.which("curl")):
+            result = send_with_curl(token, payload)
+        else:
+            try:
+                result = send_with_urllib(token, payload)
+            except Exception:
+                result = send_with_curl(token, payload)
         if not result.get("ok"):
             print("Warning: Telegram rejected the notification")
     except Exception as error:  # Notification failure must not fail an experiment.
