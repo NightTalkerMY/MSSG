@@ -6,6 +6,7 @@ import os
 import shutil
 import socket
 import subprocess
+import time
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
@@ -90,25 +91,29 @@ def send_with_curl(token, payload):
         "max-time = 20",
         "",
     ))
-    completed = subprocess.run(
-        [executable, "--config", "-"],
-        input=configuration,
-        text=True,
-        capture_output=True,
-        timeout=25,
-        check=False,
-    )
-    if completed.returncode != 0:
-        raise NotificationError(
-            telegram_error(
-                completed.stdout,
-                f"curl exited with code {completed.returncode}",
-            )
+    transient_codes = {5, 6, 7, 28, 35, 52, 55, 56}
+    for attempt in range(1, 4):
+        completed = subprocess.run(
+            [executable, "--config", "-"],
+            input=configuration,
+            text=True,
+            capture_output=True,
+            timeout=25,
+            check=False,
         )
-    try:
-        return json.loads(completed.stdout)
-    except json.JSONDecodeError as error:
-        raise NotificationError("Telegram returned a non-JSON response") from error
+        if completed.returncode == 0:
+            try:
+                return json.loads(completed.stdout)
+            except json.JSONDecodeError as error:
+                raise NotificationError("Telegram returned a non-JSON response") from error
+        if completed.returncode not in transient_codes or attempt == 3:
+            raise NotificationError(
+                telegram_error(
+                    completed.stdout,
+                    f"curl exited with code {completed.returncode} after {attempt} attempt(s)",
+                )
+            )
+        time.sleep(2 ** (attempt - 1))
 
 
 def main():
