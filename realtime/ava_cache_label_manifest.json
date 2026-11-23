@@ -1,0 +1,17 @@
+{
+  "train": {
+    "source": "D:\\New folder\\MSSG\\data\\AVA\\csv\\train_orig.csv",
+    "destination": "D:\\New folder\\MSSG\\data\\AVA\\ava_activespeaker_train_v1.0",
+    "files": 120,
+    "rows": 2676314,
+    "reused": false
+  },
+  "val": {
+    "source": "D:\\New folder\\MSSG\\data\\AVA\\csv\\val_orig.csv",
+    "destination": "D:\\New folder\\MSSG\\data\\AVA\\ava_activespeaker_test_v1.0",
+    "files": 33,
+    "rows": 768307,
+    "reused": false
+  },
+  "passed": true
+}

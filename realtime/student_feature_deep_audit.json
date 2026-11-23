@@ -1,0 +1,89 @@
+{
+  "predata": "D:\\New folder\\MSSG\\predata",
+  "numeric_value_validation": true,
+  "expected_feature_dimension": 128,
+  "splits": {
+    "train": {
+      "expected_files_per_family": 120,
+      "families": {
+        "face_feats_info": {
+          "files": 120,
+          "rows": 2676314,
+          "files_with_schema_errors": 0
+        },
+        "background_feats_info": {
+          "files": 120,
+          "rows": 2676314,
+          "files_with_schema_errors": 0
+        },
+        "face_small_feats_info": {
+          "files": 120,
+          "rows": 2676314,
+          "files_with_schema_errors": 0
+        },
+        "face.body_feats_info": {
+          "files": 120,
+          "rows": 2676314,
+          "files_with_schema_errors": 0
+        },
+        "face_large_feats_info": {
+          "files": 120,
+          "rows": 2676314,
+          "files_with_schema_errors": 0
+        },
+        "face_down_feats_info": {
+          "files": 120,
+          "rows": 2676314,
+          "files_with_schema_errors": 0
+        },
+        "face_body_large_feats_info": {
+          "files": 120,
+          "rows": 2676314,
+          "files_with_schema_errors": 0
+        }
+      }
+    },
+    "val": {
+      "expected_files_per_family": 33,
+      "families": {
+        "face_feats_info": {
+          "files": 33,
+          "rows": 768307,
+          "files_with_schema_errors": 0
+        },
+        "background_feats_info": {
+          "files": 33,
+          "rows": 768307,
+          "files_with_schema_errors": 0
+        },
+        "face_small_feats_info": {
+          "files": 33,
+          "rows": 768307,
+          "files_with_schema_errors": 0
+        },
+        "face.body_feats_info": {
+          "files": 33,
+          "rows": 768307,
+          "files_with_schema_errors": 0
+        },
+        "face_large_feats_info": {
+          "files": 33,
+          "rows": 768307,
+          "files_with_schema_errors": 0
+        },
+        "face_down_feats_info": {
+          "files": 33,
+          "rows": 768307,
+          "files_with_schema_errors": 0
+        },
+        "face_body_large_feats_info": {
+          "files": 33,
+          "rows": 768307,
+          "files_with_schema_errors": 0
+        }
+      }
+    }
+  },
+  "issues": [],
+  "passed": true
+}

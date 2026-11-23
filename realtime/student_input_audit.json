@@ -1,0 +1,102 @@
+{
+  "predata": "D:\\New folder\\MSSG\\predata",
+  "splits": {
+    "train": {
+      "expected_csv_files_per_family": 120,
+      "families": {
+        "face_feats_info": {
+          "nonempty_csv_files": 120,
+          "missing_against_face": [],
+          "unexpected_against_face": [],
+          "passed": true
+        },
+        "background_feats_info": {
+          "nonempty_csv_files": 120,
+          "missing_against_face": [],
+          "unexpected_against_face": [],
+          "passed": true
+        },
+        "face_small_feats_info": {
+          "nonempty_csv_files": 120,
+          "missing_against_face": [],
+          "unexpected_against_face": [],
+          "passed": true
+        },
+        "face.body_feats_info": {
+          "nonempty_csv_files": 120,
+          "missing_against_face": [],
+          "unexpected_against_face": [],
+          "passed": true
+        },
+        "face_large_feats_info": {
+          "nonempty_csv_files": 120,
+          "missing_against_face": [],
+          "unexpected_against_face": [],
+          "passed": true
+        },
+        "face_down_feats_info": {
+          "nonempty_csv_files": 120,
+          "missing_against_face": [],
+          "unexpected_against_face": [],
+          "passed": true
+        },
+        "face_body_large_feats_info": {
+          "nonempty_csv_files": 120,
+          "missing_against_face": [],
+          "unexpected_against_face": [],
+          "passed": true
+        }
+      },
+      "passed": true
+    },
+    "val": {
+      "expected_csv_files_per_family": 33,
+      "families": {
+        "face_feats_info": {
+          "nonempty_csv_files": 33,
+          "missing_against_face": [],
+          "unexpected_against_face": [],
+          "passed": true
+        },
+        "background_feats_info": {
+          "nonempty_csv_files": 33,
+          "missing_against_face": [],
+          "unexpected_against_face": [],
+          "passed": true
+        },
+        "face_small_feats_info": {
+          "nonempty_csv_files": 33,
+          "missing_against_face": [],
+          "unexpected_against_face": [],
+          "passed": true
+        },
+        "face.body_feats_info": {
+          "nonempty_csv_files": 33,
+          "missing_against_face": [],
+          "unexpected_against_face": [],
+          "passed": true
+        },
+        "face_large_feats_info": {
+          "nonempty_csv_files": 33,
+          "missing_against_face": [],
+          "unexpected_against_face": [],
+          "passed": true
+        },
+        "face_down_feats_info": {
+          "nonempty_csv_files": 33,
+          "missing_against_face": [],
+          "unexpected_against_face": [],
+          "passed": true
+        },
+        "face_body_large_feats_info": {
+          "nonempty_csv_files": 33,
+          "missing_against_face": [],
+          "unexpected_against_face": [],
+          "passed": true
+        }
+      },
+      "passed": true
+    }
+  },
+  "passed": true
+}
