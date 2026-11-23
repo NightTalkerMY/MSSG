@@ -19,6 +19,10 @@ case "$command_name" in
     audit-columbia-inputs) "$python_cmd" proposed/audit_columbia_inputs.py ;;
     build-columbia-cache) "$python_cmd" proposed/build_columbia_cache.py ;;
     audit-columbia-cache) "$python_cmd" proposed/audit_columbia_cache.py ;;
+    evaluate-mssg-ava) "$python_cmd" proposed/evaluate_mssg_native.py --dataset ava ;;
+    evaluate-mssg-columbia) "$python_cmd" proposed/evaluate_mssg_native.py --dataset columbia ;;
+    evaluate-lrasd-ava) "$python_cmd" proposed/evaluate_lrasd_native.py --dataset ava ;;
+    evaluate-lrasd-columbia) "$python_cmd" proposed/evaluate_lrasd_native.py --dataset columbia ;;
     smoke) run_training ce_mse 42 1 smoke_ce_mse_seed_42 ;;
     single) run_training ce_mse 42 50 ce_mse_seed_42 ;;
     single-ablation) run_training ce_only 42 50 ce_only_seed_42 ;;
@@ -48,6 +52,10 @@ Usage: bash run_catt_plan.sh COMMAND
   audit-columbia-inputs  Verify all seven held-out Columbia feature files.
   build-columbia-cache   Build reusable held-out Columbia tensors.
   audit-columbia-cache   Validate the held-out Columbia cache.
+  evaluate-mssg-ava      Evaluate retained MSSG on native AVA graphs.
+  evaluate-mssg-columbia Evaluate retained MSSG on native Columbia graphs.
+  evaluate-lrasd-ava     Evaluate official LR-ASD weights on AVA tracks.
+  evaluate-lrasd-columbia Evaluate official LR-ASD weights on corrected Columbia tracks.
   smoke              One epoch, seed 42, CE+MSE; pipeline check only.
   single             Full 50-epoch proposed run, seed 42.
   single-ablation    Full 50-epoch CE-only run, seed 42.

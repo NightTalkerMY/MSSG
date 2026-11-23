@@ -17,6 +17,7 @@ realtime/experiments/
 realtime/cached_chunks/
 realtime/val_cached_chunks/
 realtime/columbia_cached_chunks/
+realtime/baseline_runs/
 
 # Realtime directory 
 test_video/
