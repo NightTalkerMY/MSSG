@@ -71,6 +71,8 @@ case "$command_name" in
     audit-columbia-inputs) "$python_cmd" proposed/audit_columbia_inputs.py ;;
     build-columbia-cache) "$python_cmd" proposed/build_columbia_cache.py ;;
     audit-columbia-cache) "$python_cmd" proposed/audit_columbia_cache.py ;;
+    build-mssg-ava-val-graphs) MSSG_GRAPH_SPLITS=val bash graph_init.sh 9 ;;
+    build-mssg-ava-graphs) bash graph_init.sh 9 ;;
     evaluate-mssg-ava) "$python_cmd" proposed/evaluate_mssg_native.py --dataset ava ;;
     evaluate-mssg-columbia) "$python_cmd" proposed/evaluate_mssg_native.py --dataset columbia ;;
     evaluate-lrasd-ava) "$python_cmd" proposed/evaluate_lrasd_native.py --dataset ava ;;
@@ -105,6 +107,8 @@ Usage: bash run_catt_plan.sh COMMAND [--notify]
   audit-columbia-inputs  Verify all seven held-out Columbia feature files.
   build-columbia-cache   Build reusable held-out Columbia tensors.
   audit-columbia-cache   Validate the held-out Columbia cache.
+  build-mssg-ava-val-graphs Build only the native AVA validation graphs needed for evaluation.
+  build-mssg-ava-graphs Build both native MSSG AVA training and validation graphs.
   evaluate-mssg-ava      Evaluate retained MSSG on native AVA graphs.
   evaluate-mssg-columbia Evaluate retained MSSG on native Columbia graphs.
   evaluate-lrasd-ava     Evaluate official LR-ASD weights on AVA tracks.
@@ -117,6 +121,10 @@ Usage: bash run_catt_plan.sh COMMAND [--notify]
 
 Optional:
   --notify           Read .env and send Telegram start/success/failure messages.
+
+Environment:
+  MSSG_GRAPH_NJ      Stage-9 graph workers (default: 6).
+  MSSG_GRAPH_SPLITS  Stage-9 splits to build (default: "train val").
 EOF
         ;;
 esac

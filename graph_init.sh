@@ -136,13 +136,14 @@ fi
 if [ $stage -eq 9 ]; then
     mkdir -p ./predata/video_size_info
     python ./local/get_size_of_each_video.py --AVADataPath $AVADataPath --out_path=./predata/video_size_info
-    nj=33
+    # Graph construction is CPU/RAM intensive. The original 33 concurrent
+    # workers can exhaust Windows/Git Bash process memory, so use a safe
+    # default while allowing an explicit override.
+    nj=${MSSG_GRAPH_NJ:-6}
     numv=2000
     time_edge=0
-    for set in train val; do
-        if [[ "$name" == "val" ]];then
-            nj=33
-        fi
+    graph_splits=${MSSG_GRAPH_SPLITS:-"train val"}
+    for set in $graph_splits; do
         echo deal with $set using $nj workers ...
         csv_split_path=./predata/csv_split/${set}
         face_feats_info_path=./predata/face_feats_info/${set}
@@ -155,7 +156,7 @@ if [ $stage -eq 9 ]; then
         out_path=./graphs/graph_${numv}_${time_edge}/${set}/processed
         mkdir -p $out_path
         # split read files for multi-processing
-        mkdir -p ./log/generate_graph
+        mkdir -p ./log/generate_graph/${set}
         find $csv_split_path -type f > ./log/generate_graph/${set}_file_list
         file_split_scp=""
         for job in $(seq $nj); do

@@ -12,6 +12,22 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
+class NotificationError(RuntimeError):
+    """A notification error whose message is safe to show in experiment logs."""
+
+
+def telegram_error(response_text, fallback):
+    try:
+        response = json.loads(response_text)
+    except (json.JSONDecodeError, TypeError):
+        return fallback
+    error_code = response.get("error_code")
+    description = response.get("description")
+    if error_code and description:
+        return f"Telegram API {error_code}: {description}"
+    return fallback
+
+
 def read_dotenv(path):
     values = {}
     if not path.is_file():
@@ -83,8 +99,16 @@ def send_with_curl(token, payload):
         check=False,
     )
     if completed.returncode != 0:
-        raise RuntimeError(f"curl exited with code {completed.returncode}")
-    return json.loads(completed.stdout)
+        raise NotificationError(
+            telegram_error(
+                completed.stdout,
+                f"curl exited with code {completed.returncode}",
+            )
+        )
+    try:
+        return json.loads(completed.stdout)
+    except json.JSONDecodeError as error:
+        raise NotificationError("Telegram returned a non-JSON response") from error
 
 
 def main():
@@ -137,7 +161,11 @@ def main():
             except Exception:
                 result = send_with_curl(token, payload)
         if not result.get("ok"):
-            print("Warning: Telegram rejected the notification")
+            raise NotificationError(
+                telegram_error(json.dumps(result), "Telegram rejected the notification")
+            )
+    except NotificationError as error:
+        print(f"Warning: Telegram notification failed: {error}")
     except Exception as error:  # Notification failure must not fail an experiment.
         print(f"Warning: Telegram notification failed ({type(error).__name__})")
 
