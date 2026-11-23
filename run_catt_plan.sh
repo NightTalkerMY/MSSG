@@ -77,8 +77,10 @@ case "$command_name" in
     evaluate-mssg-columbia) "$python_cmd" proposed/evaluate_mssg_streaming.py --dataset columbia ;;
     evaluate-mssg-native-ava) "$python_cmd" proposed/evaluate_mssg_native.py --dataset ava ;;
     evaluate-mssg-native-columbia) "$python_cmd" proposed/evaluate_mssg_native.py --dataset columbia ;;
-    evaluate-lrasd-ava) "$python_cmd" proposed/evaluate_lrasd_native.py --dataset ava ;;
-    evaluate-lrasd-columbia) "$python_cmd" proposed/evaluate_lrasd_native.py --dataset columbia ;;
+    evaluate-lrasd-ava) "$python_cmd" proposed/evaluate_lrasd_streaming.py --dataset ava ;;
+    evaluate-lrasd-columbia) "$python_cmd" proposed/evaluate_lrasd_streaming.py --dataset columbia ;;
+    evaluate-lrasd-native-ava) "$python_cmd" proposed/evaluate_lrasd_native.py --dataset ava ;;
+    evaluate-lrasd-native-columbia) "$python_cmd" proposed/evaluate_lrasd_native.py --dataset columbia ;;
     notify-test) echo "Telegram notification test completed." ;;
     smoke) run_training ce_mse 42 1 smoke_ce_mse_seed_42 ;;
     single) run_training ce_mse 42 50 ce_mse_seed_42 ;;
@@ -115,8 +117,10 @@ Usage: bash run_catt_plan.sh COMMAND [--notify]
   evaluate-mssg-columbia Evaluate retained MSSG on Columbia under the matched 50-frame protocol.
   evaluate-mssg-native-ava      Optional native MSSG graph-node evaluation on AVA.
   evaluate-mssg-native-columbia Optional native MSSG graph-node evaluation on Columbia.
-  evaluate-lrasd-ava     Evaluate official LR-ASD weights on AVA tracks.
-  evaluate-lrasd-columbia Evaluate official LR-ASD weights on corrected Columbia tracks.
+  evaluate-lrasd-ava     Evaluate official LR-ASD weights on matched AVA 50-frame windows.
+  evaluate-lrasd-columbia Evaluate official LR-ASD weights on matched Columbia 50-frame windows.
+  evaluate-lrasd-native-ava      Optional native LR-ASD full-track evaluation on AVA.
+  evaluate-lrasd-native-columbia Optional native LR-ASD full-track evaluation on Columbia.
   notify-test         Test optional Telegram start/success notifications.
   smoke              One epoch, seed 42, CE+MSE; pipeline check only.
   single             Full 50-epoch proposed run, seed 42.
