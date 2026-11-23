@@ -18,7 +18,8 @@ realtime/experiments/
 realtime/cached_chunks/
 realtime/val_cached_chunks/
 realtime/columbia_cached_chunks/
-realtime/baseline_runs/
+# Baseline result JSON/CSV files are intentionally retained as revision
+# evidence. Evaluators write only compact metrics and prediction tables here.
 
 # Realtime directory 
 test_video/
