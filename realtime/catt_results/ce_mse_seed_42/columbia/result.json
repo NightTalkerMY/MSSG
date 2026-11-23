@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "method": "CATT-ASD",
+  "run_name": "ce_mse_seed_42",
+  "variant": "ce_mse",
+  "seed": 42,
+  "dataset": "columbia",
+  "protocol": "audited 50-frame cache; final-position predictions only",
+  "window_length": 50,
+  "stride": 25,
+  "evaluated_position": 49,
+  "cache_directory": "D:\\New folder\\MSSG\\realtime\\columbia_cached_chunks",
+  "cache_files": 2,
+  "windows_scanned": 2719,
+  "predictions": 5971,
+  "checkpoint": "D:\\New folder\\MSSG\\realtime\\experiments\\ce_mse_seed_42\\best_ava.pt",
+  "checkpoint_sha256": "ef06aad5f2fc1535d637ee606f7ab9f43fd0458a8c59aac7e562ccdad31baaa1",
+  "checkpoint_selection": "highest AVA final-frame validation mAP only",
+  "best_training_epoch": 49,
+  "columbia_used_during_training_or_selection": false,
+  "parameters": 430793,
+  "device": "cuda",
+  "torch_version": "2.1.2+cu121",
+  "cuda_version": "12.1",
+  "latency_scope": "CATT-ASD prediction head with cached inputs; includes input transfer",
+  "warmup_windows": 10,
+  "latency_mean_ms_per_window": 1.7305380280625242,
+  "latency_median_ms_per_window": 1.6494999872520566,
+  "columbia_per_speaker": {
+    "Abbas": {
+      "predictions": 497,
+      "best_f1_percent": 99.08629441619365,
+      "best_threshold": 0.04514307156205177
+    },
+    "Bell": {
+      "predictions": 1496,
+      "best_f1_percent": 90.21739130429792,
+      "best_threshold": 0.2753574252128601
+    },
+    "Boll": {
+      "predictions": 603,
+      "best_f1_percent": 82.03991130815403,
+      "best_threshold": 0.17274825274944305
+    },
+    "Lieb": {
+      "predictions": 656,
+      "best_f1_percent": 90.19607843132258,
+      "best_threshold": 0.28703680634498596
+    },
+    "Long": {
+      "predictions": 1175,
+      "best_f1_percent": 87.68577494687172,
+      "best_threshold": 0.30259981751441956
+    },
+    "Sick": {
+      "predictions": 1544,
+      "best_f1_percent": 87.21668177692203,
+      "best_threshold": 0.1812126338481903
+    }
+  },
+  "columbia_six_speaker_macro_best_f1_percent": 89.40702203062699,
+  "prediction_file": "D:\\New folder\\MSSG\\realtime\\catt_results\\ce_mse_seed_42\\columbia\\predictions.csv"
+}
