@@ -179,6 +179,25 @@ case "$command_name" in
             done
         done
         ;;
+    summarize-catt-multiseed)
+        "$python_cmd" proposed/analyze_multiseed_results.py
+        ;;
+    post-multiseed)
+        for seed in 42 123 2026; do
+            for run_name in "ce_mse_alpha_08_seed_${seed}" "ce_only_seed_${seed}"; do
+                for dataset in ava columbia; do
+                    result="realtime/catt_results/$run_name/$dataset/result.json"
+                    if [[ -f "$result" ]]; then
+                        echo "Completed result exists; skipping $run_name $dataset"
+                    else
+                        "$python_cmd" proposed/evaluate_student_checkpoint.py \
+                            --run-name "$run_name" --dataset "$dataset"
+                    fi
+                done
+            done
+        done
+        "$python_cmd" proposed/analyze_multiseed_results.py
+        ;;
     help|*)
         cat <<'EOF'
 Usage: bash run_catt_plan.sh COMMAND [--notify]
@@ -213,6 +232,8 @@ Usage: bash run_catt_plan.sh COMMAND [--notify]
   multi              Legacy alpha=0.4 paired-seed command; retained only for provenance.
   multi-selected     Train selected alpha=0.8 and CE-only for paired seeds 42, 123, 2026.
   evaluate-catt-multiseed Evaluate all selected and CE-only seed checkpoints on both datasets.
+  summarize-catt-multiseed Aggregate completed runs and compute AVA-frozen Columbia F1.
+  post-multiseed     Evaluate missing seed outputs, aggregate mean/std, and compute frozen-threshold F1.
 
 Optional:
   --notify           Read .env and send Telegram start/success/failure messages.
