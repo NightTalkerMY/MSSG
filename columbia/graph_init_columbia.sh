@@ -1,7 +1,30 @@
 #!/usr/bin/env bash
 # Modification for Columbia Dataset Feature Extraction
 
-stage=$1
+set -Eeuo pipefail
+
+stage=${1:-}
+
+if [[ "$stage" == "all" ]]; then
+    stages=(2 3 4 5 6 7 8 9)
+    echo "Running Columbia graph initialization sequentially: ${stages[*]}"
+    for current_stage in "${stages[@]}"; do
+        echo
+        echo "============================================================"
+        echo "Starting Columbia graph-init stage ${current_stage}"
+        echo "============================================================"
+        bash "$0" "$current_stage"
+        echo "Completed Columbia graph-init stage ${current_stage}"
+    done
+    echo
+    echo "All Columbia graph initialization stages completed successfully."
+    exit 0
+fi
+
+if [[ ! "$stage" =~ ^(2|3|4|5|6|7|8|9)$ ]]; then
+    echo "Usage: bash columbia/graph_init_columbia.sh {2|3|4|5|6|7|8|9|all}"
+    exit 2
+fi
 
 AVADataPath="./data/Columbia"
 ColPreData="./data/Columbia/predata"
