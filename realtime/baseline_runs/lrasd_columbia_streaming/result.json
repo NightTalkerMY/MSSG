@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "method": "LR-ASD",
+  "dataset": "columbia",
+  "protocol": "architecture-native inputs; 50-frame windows with final-position predictions only",
+  "window_length": 50,
+  "stride": 25,
+  "evaluated_position": 49,
+  "official_repository": "https://github.com/Junhua-Liao/LR-ASD",
+  "repository_commit": "1b6dcd2d8fc2895683de6508ec6294ec47d388ca",
+  "checkpoint": "D:\\New folder\\LR-ASD\\weight\\pretrain_AVA.model",
+  "checkpoint_sha256": "85e6c77fc981595234790d1e128ebb60352d37726b2445e0ef8891e2512fe9e3",
+  "loader_file": "D:\\New folder\\MSSG\\data\\Columbia\\csv\\train_loader.csv",
+  "tracks_scanned": 30,
+  "tracks_shorter_than_window": 1,
+  "predictions": 5934,
+  "inference_parameters": 836898,
+  "device": "cuda",
+  "latency_scope": "LR-ASD audio frontend, visual frontend, temporal backend, and classifier; includes input transfer",
+  "latency_mean_ms_per_window": 3.6609656721125017,
+  "latency_median_ms_per_window": 2.7751499437727034,
+  "columbia_per_speaker": {
+    "Abbas": {
+      "predictions": 492,
+      "average_precision_percent": 99.73957732330526,
+      "best_f1_percent": 99.07312049428573,
+      "best_threshold": 0.002277590800076723
+    },
+    "Bell": {
+      "predictions": 1488,
+      "average_precision_percent": 95.05323827698406,
+      "best_f1_percent": 87.81758957649723,
+      "best_threshold": 0.07148122042417526
+    },
+    "Boll": {
+      "predictions": 597,
+      "average_precision_percent": 77.73425543150684,
+      "best_f1_percent": 69.7416974169253,
+      "best_threshold": 0.019717656075954437
+    },
+    "Lieb": {
+      "predictions": 651,
+      "average_precision_percent": 94.54418388112497,
+      "best_f1_percent": 87.91946308719842,
+      "best_threshold": 0.24666862189769745
+    },
+    "Long": {
+      "predictions": 1169,
+      "average_precision_percent": 91.41105425481325,
+      "best_f1_percent": 82.98918387408963,
+      "best_threshold": 0.14687806367874146
+    },
+    "Sick": {
+      "predictions": 1537,
+      "average_precision_percent": 92.79894439075541,
+      "best_f1_percent": 85.07042253516165,
+      "best_threshold": 0.21385234594345093
+    }
+  },
+  "columbia_six_speaker_macro_best_f1_percent": 85.43524616402634,
+  "prediction_file": "D:\\New folder\\MSSG\\realtime\\baseline_runs\\lrasd_columbia_streaming\\predictions.csv"
+}
