@@ -1,0 +1,331 @@
+{
+  "schema_version": 1,
+  "threshold_protocol": "Each run/method selects one threshold from its AVA predictions; that threshold is frozen and applied unchanged to all six Columbia speakers.",
+  "seeds": [
+    42,
+    123,
+    2026
+  ],
+  "runs": {
+    "selected_alpha_08": [
+      {
+        "name": "ce_mse_alpha_08_seed_42",
+        "ava_average_precision_percent": 93.66884662901738,
+        "ava_calibrated_threshold": 0.2971346080303192,
+        "columbia_macro_best_f1_percent": 91.63364932105692,
+        "columbia_fixed_threshold_per_speaker_f1_percent": {
+          "Abbas": 89.58566629339306,
+          "Bell": 91.93989071038251,
+          "Boll": 80.19323671497585,
+          "Lieb": 91.63879598662207,
+          "Long": 88.34224598930481,
+          "Sick": 88.11320754716981
+        },
+        "columbia_fixed_threshold_macro_f1_percent": 88.30217387364137,
+        "latency_mean_ms_per_window_ava": 1.8599057355030437,
+        "latency_mean_ms_per_window_columbia": 1.7601776008027339,
+        "seed": 42
+      },
+      {
+        "name": "ce_mse_alpha_08_seed_123",
+        "ava_average_precision_percent": 93.52111868565186,
+        "ava_calibrated_threshold": 0.29545947909355164,
+        "columbia_macro_best_f1_percent": 90.73877661901669,
+        "columbia_fixed_threshold_per_speaker_f1_percent": {
+          "Abbas": 90.07803790412487,
+          "Bell": 90.48257372654156,
+          "Boll": 80.0,
+          "Lieb": 91.69435215946844,
+          "Long": 89.40677966101694,
+          "Sick": 87.79123951537746
+        },
+        "columbia_fixed_threshold_macro_f1_percent": 88.24216382775488,
+        "latency_mean_ms_per_window_ava": 1.811366712344831,
+        "latency_mean_ms_per_window_columbia": 1.788153805906647,
+        "seed": 123
+      },
+      {
+        "name": "ce_mse_alpha_08_seed_2026",
+        "ava_average_precision_percent": 93.54511571497244,
+        "ava_calibrated_threshold": 0.2899835705757141,
+        "columbia_macro_best_f1_percent": 90.8970816667114,
+        "columbia_fixed_threshold_per_speaker_f1_percent": {
+          "Abbas": 91.76728869374314,
+          "Bell": 91.4738929279577,
+          "Boll": 80.28503562945369,
+          "Lieb": 92.15686274509804,
+          "Long": 88.7722980062959,
+          "Sick": 89.03345724907064
+        },
+        "columbia_fixed_threshold_macro_f1_percent": 88.91480587526985,
+        "latency_mean_ms_per_window_ava": 1.8138014908747753,
+        "latency_mean_ms_per_window_columbia": 1.6879730054861364,
+        "seed": 2026
+      }
+    ],
+    "ce_only": [
+      {
+        "name": "ce_only_seed_42",
+        "ava_average_precision_percent": 93.46513380736292,
+        "ava_calibrated_threshold": 0.27597925066947937,
+        "columbia_macro_best_f1_percent": 89.61257208472193,
+        "columbia_fixed_threshold_per_speaker_f1_percent": {
+          "Abbas": 89.46188340807176,
+          "Bell": 90.44067796610169,
+          "Boll": 79.22705314009661,
+          "Lieb": 90.0,
+          "Long": 87.70053475935828,
+          "Sick": 87.16981132075472
+        },
+        "columbia_fixed_threshold_macro_f1_percent": 87.33332676573052,
+        "latency_mean_ms_per_window_ava": 1.9125457960173904,
+        "latency_mean_ms_per_window_columbia": 1.7135075013296772,
+        "seed": 42
+      },
+      {
+        "name": "ce_only_seed_123",
+        "ava_average_precision_percent": 93.38530951339354,
+        "ava_calibrated_threshold": 0.2402038425207138,
+        "columbia_macro_best_f1_percent": 90.23992034469438,
+        "columbia_fixed_threshold_per_speaker_f1_percent": {
+          "Abbas": 90.20044543429844,
+          "Bell": 90.9090909090909,
+          "Boll": 79.90543735224587,
+          "Lieb": 89.90228013029315,
+          "Long": 88.41657810839533,
+          "Sick": 86.89138576779027
+        },
+        "columbia_fixed_threshold_macro_f1_percent": 87.70420295035233,
+        "latency_mean_ms_per_window_ava": 1.805843701288348,
+        "latency_mean_ms_per_window_columbia": 1.7582016909524452,
+        "seed": 123
+      },
+      {
+        "name": "ce_only_seed_2026",
+        "ava_average_precision_percent": 93.55579233826205,
+        "ava_calibrated_threshold": 0.30384814739227295,
+        "columbia_macro_best_f1_percent": 89.57426536032933,
+        "columbia_fixed_threshold_per_speaker_f1_percent": {
+          "Abbas": 90.68736141906874,
+          "Bell": 90.09836065573771,
+          "Boll": 79.06976744186046,
+          "Lieb": 89.90228013029315,
+          "Long": 88.10020876826722,
+          "Sick": 87.06099815157117
+        },
+        "columbia_fixed_threshold_macro_f1_percent": 87.48649609446642,
+        "latency_mean_ms_per_window_ava": 1.80799652573072,
+        "latency_mean_ms_per_window_columbia": 1.868956970648978,
+        "seed": 2026
+      }
+    ]
+  },
+  "aggregates": {
+    "selected_alpha_08": {
+      "ava_average_precision_percent": {
+        "values": [
+          93.66884662901738,
+          93.52111868565186,
+          93.54511571497244
+        ],
+        "mean": 93.57836034321389,
+        "sample_std": 0.07927666928508142
+      },
+      "columbia_macro_best_f1_percent": {
+        "values": [
+          91.63364932105692,
+          90.73877661901669,
+          90.8970816667114
+        ],
+        "mean": 91.08983586892833,
+        "sample_std": 0.4775614359099907
+      },
+      "columbia_fixed_threshold_macro_f1_percent": {
+        "values": [
+          88.30217387364137,
+          88.24216382775488,
+          88.91480587526985
+        ],
+        "mean": 88.48638119222203,
+        "sample_std": 0.3722379389386469
+      },
+      "columbia_fixed_threshold_per_speaker_f1_percent": {
+        "Abbas": {
+          "values": [
+            89.58566629339306,
+            90.07803790412487,
+            91.76728869374314
+          ],
+          "mean": 90.47699763042034,
+          "sample_std": 1.1442227588331033
+        },
+        "Bell": {
+          "values": [
+            91.93989071038251,
+            90.48257372654156,
+            91.4738929279577
+          ],
+          "mean": 91.29878578829393,
+          "sample_std": 0.7442715100141526
+        },
+        "Boll": {
+          "values": [
+            80.19323671497585,
+            80.0,
+            80.28503562945369
+          ],
+          "mean": 80.15942411480985,
+          "sample_std": 0.14549500493833004
+        },
+        "Lieb": {
+          "values": [
+            91.63879598662207,
+            91.69435215946844,
+            92.15686274509804
+          ],
+          "mean": 91.83000363039618,
+          "sample_std": 0.28442799217569076
+        },
+        "Long": {
+          "values": [
+            88.34224598930481,
+            89.40677966101694,
+            88.7722980062959
+          ],
+          "mean": 88.84044121887256,
+          "sample_std": 0.5355283443641669
+        },
+        "Sick": {
+          "values": [
+            88.11320754716981,
+            87.79123951537746,
+            89.03345724907064
+          ],
+          "mean": 88.3126347705393,
+          "sample_std": 0.6446740552722009
+        }
+      }
+    },
+    "ce_only": {
+      "ava_average_precision_percent": {
+        "values": [
+          93.46513380736292,
+          93.38530951339354,
+          93.55579233826205
+        ],
+        "mean": 93.46874521967284,
+        "sample_std": 0.08529876973287087
+      },
+      "columbia_macro_best_f1_percent": {
+        "values": [
+          89.61257208472193,
+          90.23992034469438,
+          89.57426536032933
+        ],
+        "mean": 89.80891926324854,
+        "sample_std": 0.3737489805190519
+      },
+      "columbia_fixed_threshold_macro_f1_percent": {
+        "values": [
+          87.33332676573052,
+          87.70420295035233,
+          87.48649609446642
+        ],
+        "mean": 87.50800860351642,
+        "sample_std": 0.186371610268643
+      },
+      "columbia_fixed_threshold_per_speaker_f1_percent": {
+        "Abbas": {
+          "values": [
+            89.46188340807176,
+            90.20044543429844,
+            90.68736141906874
+          ],
+          "mean": 90.11656342047964,
+          "sample_std": 0.6170301719049089
+        },
+        "Bell": {
+          "values": [
+            90.44067796610169,
+            90.9090909090909,
+            90.09836065573771
+          ],
+          "mean": 90.48270984364342,
+          "sample_std": 0.4069961854523933
+        },
+        "Boll": {
+          "values": [
+            79.22705314009661,
+            79.90543735224587,
+            79.06976744186046
+          ],
+          "mean": 79.40075264473431,
+          "sample_std": 0.4440886040132362
+        },
+        "Lieb": {
+          "values": [
+            90.0,
+            89.90228013029315,
+            89.90228013029315
+          ],
+          "mean": 89.93485342019544,
+          "sample_std": 0.05641859308042512
+        },
+        "Long": {
+          "values": [
+            87.70053475935828,
+            88.41657810839533,
+            88.10020876826722
+          ],
+          "mean": 88.07244054534027,
+          "sample_std": 0.3588284061754858
+        },
+        "Sick": {
+          "values": [
+            87.16981132075472,
+            86.89138576779027,
+            87.06099815157117
+          ],
+          "mean": 87.04073174670539,
+          "sample_std": 0.14031479790288623
+        }
+      }
+    }
+  },
+  "baselines": {
+    "mssg": {
+      "name": "MSSG",
+      "ava_average_precision_percent": 90.60585742704568,
+      "ava_calibrated_threshold": 0.3761635720729828,
+      "columbia_macro_best_f1_percent": 90.14965600161611,
+      "columbia_fixed_threshold_per_speaker_f1_percent": {
+        "Abbas": 95.9915611814346,
+        "Bell": 91.93650793650794,
+        "Boll": 76.98744769874477,
+        "Lieb": 91.6923076923077,
+        "Long": 87.28323699421965,
+        "Sick": 86.7761452031115
+      },
+      "columbia_fixed_threshold_macro_f1_percent": 88.44453445105434,
+      "latency_mean_ms_per_window_ava": 4.484458107175118,
+      "latency_mean_ms_per_window_columbia": 4.348300625688289
+    },
+    "lrasd": {
+      "name": "LR-ASD",
+      "ava_average_precision_percent": 93.27616829782593,
+      "ava_calibrated_threshold": 0.32595881819725037,
+      "columbia_macro_best_f1_percent": 85.43524616402634,
+      "columbia_fixed_threshold_per_speaker_f1_percent": {
+        "Abbas": 81.86274509803921,
+        "Bell": 80.81264108352144,
+        "Boll": 54.268292682926834,
+        "Lieb": 87.67123287671232,
+        "Long": 81.38528138528139,
+        "Sick": 83.64348677766895
+      },
+      "columbia_fixed_threshold_macro_f1_percent": 78.2739466506917,
+      "latency_mean_ms_per_window_ava": 11.524999874735336,
+      "latency_mean_ms_per_window_columbia": 3.6609656721125017
+    }
+  }
+}
