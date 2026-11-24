@@ -13,6 +13,14 @@
         "ava_average_precision_percent": 93.66884662901738,
         "ava_calibrated_threshold": 0.2971346080303192,
         "columbia_macro_best_f1_percent": 91.63364932105692,
+        "columbia_per_speaker_best_f1_percent": {
+          "Abbas": 99.08629441619365,
+          "Bell": 92.55751014879988,
+          "Boll": 84.05797101444283,
+          "Lieb": 93.5483870967242,
+          "Long": 90.56994818647861,
+          "Sick": 89.98178506370242
+        },
         "columbia_fixed_threshold_per_speaker_f1_percent": {
           "Abbas": 89.58566629339306,
           "Bell": 91.93989071038251,
@@ -31,6 +39,14 @@
         "ava_average_precision_percent": 93.52111868565186,
         "ava_calibrated_threshold": 0.29545947909355164,
         "columbia_macro_best_f1_percent": 90.73877661901669,
+        "columbia_per_speaker_best_f1_percent": {
+          "Abbas": 99.08629441619365,
+          "Bell": 90.97035040426273,
+          "Boll": 82.97872340420531,
+          "Lieb": 92.65175718844839,
+          "Long": 89.91769547320109,
+          "Sick": 88.82783882778901
+        },
         "columbia_fixed_threshold_per_speaker_f1_percent": {
           "Abbas": 90.07803790412487,
           "Bell": 90.48257372654156,
@@ -49,6 +65,14 @@
         "ava_average_precision_percent": 93.54511571497244,
         "ava_calibrated_threshold": 0.2899835705757141,
         "columbia_macro_best_f1_percent": 90.8970816667114,
+        "columbia_per_speaker_best_f1_percent": {
+          "Abbas": 99.08629441619365,
+          "Bell": 91.73333333328335,
+          "Boll": 82.08616780040366,
+          "Lieb": 92.40121580542123,
+          "Long": 89.89690721644494,
+          "Sick": 90.1785714285215
+        },
         "columbia_fixed_threshold_per_speaker_f1_percent": {
           "Abbas": 91.76728869374314,
           "Bell": 91.4738929279577,
@@ -69,6 +93,14 @@
         "ava_average_precision_percent": 93.46513380736292,
         "ava_calibrated_threshold": 0.27597925066947937,
         "columbia_macro_best_f1_percent": 89.61257208472193,
+        "columbia_per_speaker_best_f1_percent": {
+          "Abbas": 99.08629441619365,
+          "Bell": 90.71332436064992,
+          "Boll": 81.54506437763241,
+          "Lieb": 89.99999999995009,
+          "Long": 88.88888888883896,
+          "Sick": 87.44186046506658
+        },
         "columbia_fixed_threshold_per_speaker_f1_percent": {
           "Abbas": 89.46188340807176,
           "Bell": 90.44067796610169,
@@ -87,6 +119,14 @@
         "ava_average_precision_percent": 93.38530951339354,
         "ava_calibrated_threshold": 0.2402038425207138,
         "columbia_macro_best_f1_percent": 90.23992034469438,
+        "columbia_per_speaker_best_f1_percent": {
+          "Abbas": 99.1869918698687,
+          "Bell": 91.01876675598221,
+          "Boll": 82.50539956798455,
+          "Lieb": 90.73482428110015,
+          "Long": 89.79591836729698,
+          "Sick": 88.19762122593372
+        },
         "columbia_fixed_threshold_per_speaker_f1_percent": {
           "Abbas": 90.20044543429844,
           "Bell": 90.9090909090909,
@@ -105,6 +145,14 @@
         "ava_average_precision_percent": 93.55579233826205,
         "ava_calibrated_threshold": 0.30384814739227295,
         "columbia_macro_best_f1_percent": 89.57426536032933,
+        "columbia_per_speaker_best_f1_percent": {
+          "Abbas": 99.08629441619365,
+          "Bell": 90.38587311963606,
+          "Boll": 80.50314465403807,
+          "Lieb": 91.30434782603697,
+          "Long": 88.5973763874374,
+          "Sick": 87.5685557586339
+        },
         "columbia_fixed_threshold_per_speaker_f1_percent": {
           "Abbas": 90.68736141906874,
           "Bell": 90.09836065573771,
@@ -204,6 +252,62 @@
           "mean": 88.3126347705393,
           "sample_std": 0.6446740552722009
         }
+      },
+      "columbia_per_speaker_best_f1_percent": {
+        "Abbas": {
+          "values": [
+            99.08629441619365,
+            99.08629441619365,
+            99.08629441619365
+          ],
+          "mean": 99.08629441619365,
+          "sample_std": 0.0
+        },
+        "Bell": {
+          "values": [
+            92.55751014879988,
+            90.97035040426273,
+            91.73333333328335
+          ],
+          "mean": 91.75373129544865,
+          "sample_std": 0.7937764618046933
+        },
+        "Boll": {
+          "values": [
+            84.05797101444283,
+            82.97872340420531,
+            82.08616780040366
+          ],
+          "mean": 83.04095407301726,
+          "sample_std": 0.9873735214342075
+        },
+        "Lieb": {
+          "values": [
+            93.5483870967242,
+            92.65175718844839,
+            92.40121580542123
+          ],
+          "mean": 92.86712003019795,
+          "sample_std": 0.6031470451741114
+        },
+        "Long": {
+          "values": [
+            90.56994818647861,
+            89.91769547320109,
+            89.89690721644494
+          ],
+          "mean": 90.12818362537489,
+          "sample_std": 0.3827205030960815
+        },
+        "Sick": {
+          "values": [
+            89.98178506370242,
+            88.82783882778901,
+            90.1785714285215
+          ],
+          "mean": 89.66273177333763,
+          "sample_std": 0.7297026046546833
+        }
       }
     },
     "ce_only": {
@@ -289,6 +393,62 @@
           "mean": 87.04073174670539,
           "sample_std": 0.14031479790288623
         }
+      },
+      "columbia_per_speaker_best_f1_percent": {
+        "Abbas": {
+          "values": [
+            99.08629441619365,
+            99.1869918698687,
+            99.08629441619365
+          ],
+          "mean": 99.11986023408535,
+          "sample_std": 0.05813770198600192
+        },
+        "Bell": {
+          "values": [
+            90.71332436064992,
+            91.01876675598221,
+            90.38587311963606
+          ],
+          "mean": 90.70598807875608,
+          "sample_std": 0.31651059145924954
+        },
+        "Boll": {
+          "values": [
+            81.54506437763241,
+            82.50539956798455,
+            80.50314465403807
+          ],
+          "mean": 81.51786953321835,
+          "sample_std": 1.0014044411613834
+        },
+        "Lieb": {
+          "values": [
+            89.99999999995009,
+            90.73482428110015,
+            91.30434782603697
+          ],
+          "mean": 90.67972403569574,
+          "sample_std": 0.6539173041272983
+        },
+        "Long": {
+          "values": [
+            88.88888888883896,
+            89.79591836729698,
+            88.5973763874374
+          ],
+          "mean": 89.09406121452444,
+          "sample_std": 0.625057982743861
+        },
+        "Sick": {
+          "values": [
+            87.44186046506658,
+            88.19762122593372,
+            87.5685557586339
+          ],
+          "mean": 87.73601248321141,
+          "sample_std": 0.40475288494498035
+        }
       }
     }
   },
@@ -298,6 +458,14 @@
       "ava_average_precision_percent": 90.60585742704568,
       "ava_calibrated_threshold": 0.3761635720729828,
       "columbia_macro_best_f1_percent": 90.14965600161611,
+      "columbia_per_speaker_best_f1_percent": {
+        "Abbas": 99.1869918698687,
+        "Bell": 92.73670557712249,
+        "Boll": 78.35497835492836,
+        "Lieb": 92.90322580640161,
+        "Long": 89.62739174214538,
+        "Sick": 88.08864265923002
+      },
       "columbia_fixed_threshold_per_speaker_f1_percent": {
         "Abbas": 95.9915611814346,
         "Bell": 91.93650793650794,
@@ -315,6 +483,14 @@
       "ava_average_precision_percent": 93.27616829782593,
       "ava_calibrated_threshold": 0.32595881819725037,
       "columbia_macro_best_f1_percent": 85.43524616402634,
+      "columbia_per_speaker_best_f1_percent": {
+        "Abbas": 99.07312049428573,
+        "Bell": 87.81758957649723,
+        "Boll": 69.7416974169253,
+        "Lieb": 87.91946308719842,
+        "Long": 82.98918387408963,
+        "Sick": 85.07042253516165
+      },
       "columbia_fixed_threshold_per_speaker_f1_percent": {
         "Abbas": 81.86274509803921,
         "Bell": 80.81264108352144,
