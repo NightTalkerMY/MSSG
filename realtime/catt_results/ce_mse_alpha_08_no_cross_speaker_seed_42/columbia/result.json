@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "method": "CATT-ASD",
+  "run_name": "ce_mse_alpha_08_no_cross_speaker_seed_42",
+  "variant": "ce_mse",
+  "architecture": "no_cross_speaker",
+  "seed": 42,
+  "dataset": "columbia",
+  "protocol": "audited 50-frame cache; final-position predictions only",
+  "window_length": 50,
+  "stride": 25,
+  "evaluated_position": 49,
+  "cache_directory": "D:\\New folder\\MSSG\\realtime\\columbia_cached_chunks",
+  "cache_files": 2,
+  "windows_scanned": 2719,
+  "predictions": 5971,
+  "checkpoint": "D:\\New folder\\MSSG\\realtime\\experiments\\ce_mse_alpha_08_no_cross_speaker_seed_42\\best_ava.pt",
+  "checkpoint_sha256": "e527a24b08300d8091ebef5fb92bd23599b1a7a6e0407bee031ba247207ac857",
+  "checkpoint_selection": "highest AVA final-frame validation mAP only",
+  "best_training_epoch": 26,
+  "columbia_used_during_training_or_selection": false,
+  "parameters": 364489,
+  "device": "cuda",
+  "torch_version": "2.1.2+cu121",
+  "cuda_version": "12.1",
+  "latency_scope": "CATT-ASD prediction head with cached inputs; includes input transfer",
+  "warmup_windows": 10,
+  "latency_mean_ms_per_window": 1.54816818828775,
+  "latency_median_ms_per_window": 1.3498000334948301,
+  "columbia_per_speaker": {
+    "Abbas": {
+      "predictions": 497,
+      "best_f1_percent": 99.08629441619365,
+      "best_threshold": 0.04426349699497223
+    },
+    "Bell": {
+      "predictions": 1496,
+      "best_f1_percent": 90.80310880824015,
+      "best_threshold": 0.22868062555789948
+    },
+    "Boll": {
+      "predictions": 603,
+      "best_f1_percent": 82.56070640171603,
+      "best_threshold": 0.18245574831962585
+    },
+    "Lieb": {
+      "predictions": 656,
+      "best_f1_percent": 90.60402684558773,
+      "best_threshold": 0.38458144664764404
+    },
+    "Long": {
+      "predictions": 1175,
+      "best_f1_percent": 87.49999999995008,
+      "best_threshold": 0.2055504471063614
+    },
+    "Sick": {
+      "predictions": 1544,
+      "best_f1_percent": 87.16528162506567,
+      "best_threshold": 0.23921988904476166
+    }
+  },
+  "columbia_six_speaker_macro_best_f1_percent": 89.61990301612555,
+  "prediction_file": "D:\\New folder\\MSSG\\realtime\\catt_results\\ce_mse_alpha_08_no_cross_speaker_seed_42\\columbia\\predictions.csv"
+}

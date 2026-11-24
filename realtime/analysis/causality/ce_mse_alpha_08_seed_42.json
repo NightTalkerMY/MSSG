@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "run_name": "ce_mse_alpha_08_seed_42",
+  "architecture": "full",
+  "expectation": "causal",
+  "test": "future inputs after each cutoff are replaced; logits through the cutoff are compared",
+  "cutoffs": [
+    10,
+    25,
+    40
+  ],
+  "trials": 5,
+  "tolerance": 1e-06,
+  "maximum_past_logit_absolute_difference": 0.0,
+  "passed": true,
+  "checkpoint_sha256": "6328d17b965464e82d3b21f28d42772007e5446c983e3ae0ce2ca92d5a7fd6c5",
+  "device": "cuda",
+  "trial_results": [
+    {
+      "trial": 0,
+      "cutoff": 10,
+      "maximum_past_logit_absolute_difference": 0.0
+    },
+    {
+      "trial": 0,
+      "cutoff": 25,
+      "maximum_past_logit_absolute_difference": 0.0
+    },
+    {
+      "trial": 0,
+      "cutoff": 40,
+      "maximum_past_logit_absolute_difference": 0.0
+    },
+    {
+      "trial": 1,
+      "cutoff": 10,
+      "maximum_past_logit_absolute_difference": 0.0
+    },
+    {
+      "trial": 1,
+      "cutoff": 25,
+      "maximum_past_logit_absolute_difference": 0.0
+    },
+    {
+      "trial": 1,
+      "cutoff": 40,
+      "maximum_past_logit_absolute_difference": 0.0
+    },
+    {
+      "trial": 2,
+      "cutoff": 10,
+      "maximum_past_logit_absolute_difference": 0.0
+    },
+    {
+      "trial": 2,
+      "cutoff": 25,
+      "maximum_past_logit_absolute_difference": 0.0
+    },
+    {
+      "trial": 2,
+      "cutoff": 40,
+      "maximum_past_logit_absolute_difference": 0.0
+    },
+    {
+      "trial": 3,
+      "cutoff": 10,
+      "maximum_past_logit_absolute_difference": 0.0
+    },
+    {
+      "trial": 3,
+      "cutoff": 25,
+      "maximum_past_logit_absolute_difference": 0.0
+    },
+    {
+      "trial": 3,
+      "cutoff": 40,
+      "maximum_past_logit_absolute_difference": 0.0
+    },
+    {
+      "trial": 4,
+      "cutoff": 10,
+      "maximum_past_logit_absolute_difference": 0.0
+    },
+    {
+      "trial": 4,
+      "cutoff": 25,
+      "maximum_past_logit_absolute_difference": 0.0
+    },
+    {
+      "trial": 4,
+      "cutoff": 40,
+      "maximum_past_logit_absolute_difference": 0.0
+    }
+  ],
+  "scope_note": "This verifies the CATT-ASD prediction head with respect to its supplied features; upstream feature temporal support requires a separate audit."
+}

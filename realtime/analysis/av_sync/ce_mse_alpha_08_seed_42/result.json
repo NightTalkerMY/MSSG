@@ -1,0 +1,238 @@
+{
+  "schema_version": 1,
+  "run_name": "ce_mse_alpha_08_seed_42",
+  "seed": 42,
+  "architecture": "full",
+  "offset_definition": "negative values delay video/spatial features; positive values delay audio; only past features are used and vacated positions are zero-filled",
+  "offsets_frames": [
+    -10,
+    -5,
+    -2,
+    -1,
+    0,
+    1,
+    2,
+    5,
+    10
+  ],
+  "ava_calibrated_threshold_from_aligned_predictions": 0.2971346080303192,
+  "results": [
+    {
+      "offset_frames": -10,
+      "offset_milliseconds_at_25_fps": -400,
+      "perturbation": "video_lag",
+      "ava_average_precision_percent": 86.63750080801793,
+      "columbia_macro_best_f1_percent": 91.1097334770186,
+      "columbia_macro_ava_frozen_threshold_f1_percent": 87.63274317890496,
+      "columbia_per_speaker_best_f1_percent": {
+        "Abbas": 99.08629441624366,
+        "Bell": 91.45028499050032,
+        "Boll": 81.09243697478992,
+        "Lieb": 95.2076677316294,
+        "Long": 90.53916581892166,
+        "Sick": 89.28255093002657
+      },
+      "columbia_per_speaker_ava_frozen_threshold_f1_percent": {
+        "Abbas": 89.95535714285714,
+        "Bell": 90.95853161114887,
+        "Boll": 77.07317073170732,
+        "Lieb": 91.58249158249158,
+        "Long": 89.27038626609442,
+        "Sick": 86.95652173913044
+      }
+    },
+    {
+      "offset_frames": -5,
+      "offset_milliseconds_at_25_fps": -200,
+      "perturbation": "video_lag",
+      "ava_average_precision_percent": 91.6599949900539,
+      "columbia_macro_best_f1_percent": 91.24872136099486,
+      "columbia_macro_ava_frozen_threshold_f1_percent": 87.91170249031278,
+      "columbia_per_speaker_best_f1_percent": {
+        "Abbas": 99.08629441624366,
+        "Bell": 91.51636606546425,
+        "Boll": 82.22698072805139,
+        "Lieb": 93.85113268608414,
+        "Long": 90.94608341810783,
+        "Sick": 89.86547085201794
+      },
+      "columbia_per_speaker_ava_frozen_threshold_f1_percent": {
+        "Abbas": 90.20044543429844,
+        "Bell": 91.07021131561008,
+        "Boll": 78.13267813267814,
+        "Lieb": 91.58249158249158,
+        "Long": 89.19786096256685,
+        "Sick": 87.28652751423151
+      }
+    },
+    {
+      "offset_frames": -2,
+      "offset_milliseconds_at_25_fps": -80,
+      "perturbation": "video_lag",
+      "ava_average_precision_percent": 93.1764328431199,
+      "columbia_macro_best_f1_percent": 91.40124896809233,
+      "columbia_macro_ava_frozen_threshold_f1_percent": 87.99544793047998,
+      "columbia_per_speaker_best_f1_percent": {
+        "Abbas": 99.08629441624366,
+        "Bell": 92.13333333333334,
+        "Boll": 82.56880733944955,
+        "Lieb": 93.71069182389937,
+        "Long": 90.64449064449065,
+        "Sick": 90.2638762511374
+      },
+      "columbia_per_speaker_ava_frozen_threshold_f1_percent": {
+        "Abbas": 89.46188340807176,
+        "Bell": 91.0089224433768,
+        "Boll": 78.62407862407862,
+        "Lieb": 91.63879598662207,
+        "Long": 89.12579957356077,
+        "Sick": 88.11320754716981
+      }
+    },
+    {
+      "offset_frames": -1,
+      "offset_milliseconds_at_25_fps": -40,
+      "perturbation": "video_lag",
+      "ava_average_precision_percent": 93.5201837397519,
+      "columbia_macro_best_f1_percent": 91.23747422540082,
+      "columbia_macro_ava_frozen_threshold_f1_percent": 87.93341116729043,
+      "columbia_per_speaker_best_f1_percent": {
+        "Abbas": 99.08629441624366,
+        "Bell": 92.01623815967524,
+        "Boll": 82.99319727891157,
+        "Lieb": 93.06930693069307,
+        "Long": 90.3943377148635,
+        "Sick": 89.86547085201794
+      },
+      "columbia_per_speaker_ava_frozen_threshold_f1_percent": {
+        "Abbas": 89.46188340807176,
+        "Bell": 91.39344262295081,
+        "Boll": 78.43137254901961,
+        "Lieb": 91.58249158249158,
+        "Long": 88.91257995735607,
+        "Sick": 87.81869688385268
+      }
+    },
+    {
+      "offset_frames": 0,
+      "offset_milliseconds_at_25_fps": 0,
+      "perturbation": "aligned",
+      "ava_average_precision_percent": 93.66884662901738,
+      "columbia_macro_best_f1_percent": 91.63364932110686,
+      "columbia_macro_ava_frozen_threshold_f1_percent": 88.30217387364137,
+      "columbia_per_speaker_best_f1_percent": {
+        "Abbas": 99.08629441624366,
+        "Bell": 92.5575101488498,
+        "Boll": 84.05797101449275,
+        "Lieb": 93.54838709677419,
+        "Long": 90.56994818652849,
+        "Sick": 89.98178506375227
+      },
+      "columbia_per_speaker_ava_frozen_threshold_f1_percent": {
+        "Abbas": 89.58566629339306,
+        "Bell": 91.93989071038251,
+        "Boll": 80.19323671497585,
+        "Lieb": 91.63879598662207,
+        "Long": 88.34224598930481,
+        "Sick": 88.11320754716981
+      }
+    },
+    {
+      "offset_frames": 1,
+      "offset_milliseconds_at_25_fps": 40,
+      "perturbation": "audio_lag",
+      "ava_average_precision_percent": 93.14149761515003,
+      "columbia_macro_best_f1_percent": 91.63974982429362,
+      "columbia_macro_ava_frozen_threshold_f1_percent": 88.04240114516135,
+      "columbia_per_speaker_best_f1_percent": {
+        "Abbas": 99.08629441624366,
+        "Bell": 92.85714285714286,
+        "Boll": 84.06374501992032,
+        "Lieb": 93.15960912052117,
+        "Long": 90.20408163265307,
+        "Sick": 90.46762589928058
+      },
+      "columbia_per_speaker_ava_frozen_threshold_f1_percent": {
+        "Abbas": 90.32258064516128,
+        "Bell": 91.53005464480874,
+        "Boll": 78.72860635696821,
+        "Lieb": 91.74917491749174,
+        "Long": 88.1283422459893,
+        "Sick": 87.79564806054873
+      }
+    },
+    {
+      "offset_frames": 2,
+      "offset_milliseconds_at_25_fps": 80,
+      "perturbation": "audio_lag",
+      "ava_average_precision_percent": 92.0947122166309,
+      "columbia_macro_best_f1_percent": 91.53773760271274,
+      "columbia_macro_ava_frozen_threshold_f1_percent": 87.74926345609397,
+      "columbia_per_speaker_best_f1_percent": {
+        "Abbas": 99.08629441624366,
+        "Bell": 92.6829268292683,
+        "Boll": 83.75,
+        "Lieb": 93.63057324840764,
+        "Long": 90.25844930417495,
+        "Sick": 89.81818181818181
+      },
+      "columbia_per_speaker_ava_frozen_threshold_f1_percent": {
+        "Abbas": 90.32258064516128,
+        "Bell": 91.66666666666666,
+        "Boll": 79.22705314009661,
+        "Lieb": 90.23569023569024,
+        "Long": 87.67416934619507,
+        "Sick": 87.36942070275404
+      }
+    },
+    {
+      "offset_frames": 5,
+      "offset_milliseconds_at_25_fps": 200,
+      "perturbation": "audio_lag",
+      "ava_average_precision_percent": 87.93430216530429,
+      "columbia_macro_best_f1_percent": 91.39859355351484,
+      "columbia_macro_ava_frozen_threshold_f1_percent": 87.64091073190347,
+      "columbia_per_speaker_best_f1_percent": {
+        "Abbas": 99.08629441624366,
+        "Bell": 92.38776837996096,
+        "Boll": 84.43496801705757,
+        "Lieb": 92.26006191950464,
+        "Long": 90.04065040650406,
+        "Sick": 90.18181818181819
+      },
+      "columbia_per_speaker_ava_frozen_threshold_f1_percent": {
+        "Abbas": 89.97772828507794,
+        "Bell": 91.45591250854409,
+        "Boll": 78.83211678832117,
+        "Lieb": 89.27335640138409,
+        "Long": 88.36712913553896,
+        "Sick": 87.9392212725546
+      }
+    },
+    {
+      "offset_frames": 10,
+      "offset_milliseconds_at_25_fps": 400,
+      "perturbation": "audio_lag",
+      "ava_average_precision_percent": 83.01311367831505,
+      "columbia_macro_best_f1_percent": 91.01761896863728,
+      "columbia_macro_ava_frozen_threshold_f1_percent": 86.33438255183847,
+      "columbia_per_speaker_best_f1_percent": {
+        "Abbas": 99.08629441624366,
+        "Bell": 93.42875731945348,
+        "Boll": 83.43815513626835,
+        "Lieb": 90.06211180124224,
+        "Long": 89.54056695992179,
+        "Sick": 90.54982817869416
+      },
+      "columbia_per_speaker_ava_frozen_threshold_f1_percent": {
+        "Abbas": 88.83878241262683,
+        "Bell": 91.40518417462484,
+        "Boll": 77.0,
+        "Lieb": 87.01754385964912,
+        "Long": 86.93790149892934,
+        "Sick": 86.80688336520076
+      }
+    }
+  ],
+  "prediction_file": "D:\\New folder\\MSSG\\realtime\\analysis\\av_sync\\ce_mse_alpha_08_seed_42\\predictions.csv.gz"
+}
