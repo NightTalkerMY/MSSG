@@ -63,7 +63,105 @@ run_training() {
     if [[ -n "${5:-}" ]]; then
         arguments+=(--alpha "$5")
     fi
+    arguments+=(--architecture "${6:-full}")
     PYTHONHASHSEED="$2" "$python_cmd" "${arguments[@]}"
+}
+
+evaluate_multiseed_outputs() {
+    for seed in 42 123 2026; do
+        for run_name in "ce_mse_alpha_08_seed_${seed}" "ce_only_seed_${seed}"; do
+            for dataset in ava columbia; do
+                result="realtime/catt_results/$run_name/$dataset/result.json"
+                if [[ -f "$result" ]]; then
+                    echo "Completed result exists; skipping $run_name $dataset"
+                else
+                    "$python_cmd" proposed/evaluate_student_checkpoint.py \
+                        --run-name "$run_name" --dataset "$dataset"
+                fi
+            done
+        done
+    done
+}
+
+train_remaining_ablations() {
+    for architecture in no_buffer no_cross_speaker noncausal; do
+        run_name="ce_mse_alpha_08_${architecture}_seed_42"
+        output="realtime/experiments/$run_name"
+        if [[ -f "$output/run_manifest.json" && -f "$output/best_ava.pt" ]]; then
+            echo "Completed run exists; skipping $run_name"
+        else
+            run_training ce_mse 42 50 "$run_name" 0.8 "$architecture"
+        fi
+    done
+}
+
+evaluate_remaining_ablations() {
+    for architecture in no_buffer no_cross_speaker noncausal; do
+        run_name="ce_mse_alpha_08_${architecture}_seed_42"
+        for dataset in ava columbia; do
+            result="realtime/catt_results/$run_name/$dataset/result.json"
+            if [[ -f "$result" ]]; then
+                echo "Completed result exists; skipping $run_name $dataset"
+            else
+                "$python_cmd" proposed/evaluate_student_checkpoint.py \
+                    --run-name "$run_name" --dataset "$dataset"
+            fi
+        done
+    done
+}
+
+run_remaining_ablations() {
+    for architecture in no_buffer no_cross_speaker noncausal; do
+        run_name="ce_mse_alpha_08_${architecture}_seed_42"
+        output="realtime/experiments/$run_name"
+        if [[ -f "$output/run_manifest.json" && -f "$output/best_ava.pt" ]]; then
+            echo "Completed run exists; skipping $run_name"
+        else
+            run_training ce_mse 42 50 "$run_name" 0.8 "$architecture"
+        fi
+        for dataset in ava columbia; do
+            result="realtime/catt_results/$run_name/$dataset/result.json"
+            if [[ -f "$result" ]]; then
+                echo "Completed result exists; skipping $run_name $dataset"
+            else
+                "$python_cmd" proposed/evaluate_student_checkpoint.py \
+                    --run-name "$run_name" --dataset "$dataset"
+            fi
+        done
+    done
+}
+
+verify_catt_causality() {
+    for seed in 42 123 2026; do
+        run_name="ce_mse_alpha_08_seed_${seed}"
+        output="realtime/analysis/causality/${run_name}.json"
+        if [[ -f "$output" ]]; then
+            echo "Completed causality result exists; skipping $run_name"
+        else
+            "$python_cmd" proposed/verify_student_causality.py \
+                --run-name "$run_name" --expect causal
+        fi
+    done
+    run_name="ce_mse_alpha_08_noncausal_seed_42"
+    output="realtime/analysis/causality/${run_name}.json"
+    if [[ -f "$output" ]]; then
+        echo "Completed causality result exists; skipping $run_name"
+    else
+        "$python_cmd" proposed/verify_student_causality.py \
+            --run-name "$run_name" --expect noncausal
+    fi
+}
+
+evaluate_catt_av_sync() {
+    for seed in 42 123 2026; do
+        run_name="ce_mse_alpha_08_seed_${seed}"
+        output="realtime/analysis/av_sync/${run_name}/result.json"
+        if [[ -f "$output" ]]; then
+            echo "Completed AV-sync result exists; skipping $run_name"
+        else
+            "$python_cmd" proposed/evaluate_av_sync.py --run-name "$run_name"
+        fi
+    done
 }
 
 case "$command_name" in
@@ -129,6 +227,7 @@ case "$command_name" in
             --run-name ce_projected_cosine_beta_01_seed_42 --dataset ava
         ;;
     notify-test) echo "Telegram notification test completed." ;;
+    smoke-catt-architectures) "$python_cmd" proposed/smoke_student_architectures.py ;;
     smoke) run_training ce_mse 42 1 smoke_ce_mse_seed_42 ;;
     single) run_training ce_mse 42 50 ce_mse_seed_42 ;;
     single-ablation) run_training ce_only 42 50 ce_only_seed_42 ;;
@@ -165,38 +264,38 @@ case "$command_name" in
         done
         ;;
     evaluate-catt-multiseed)
-        for seed in 42 123 2026; do
-            for run_name in "ce_mse_alpha_08_seed_${seed}" "ce_only_seed_${seed}"; do
-                for dataset in ava columbia; do
-                    result="realtime/catt_results/$run_name/$dataset/result.json"
-                    if [[ -f "$result" ]]; then
-                        echo "Completed result exists; skipping $run_name $dataset"
-                    else
-                        "$python_cmd" proposed/evaluate_student_checkpoint.py \
-                            --run-name "$run_name" --dataset "$dataset"
-                    fi
-                done
-            done
-        done
+        evaluate_multiseed_outputs
         ;;
     summarize-catt-multiseed)
         "$python_cmd" proposed/analyze_multiseed_results.py
         ;;
     post-multiseed)
-        for seed in 42 123 2026; do
-            for run_name in "ce_mse_alpha_08_seed_${seed}" "ce_only_seed_${seed}"; do
-                for dataset in ava columbia; do
-                    result="realtime/catt_results/$run_name/$dataset/result.json"
-                    if [[ -f "$result" ]]; then
-                        echo "Completed result exists; skipping $run_name $dataset"
-                    else
-                        "$python_cmd" proposed/evaluate_student_checkpoint.py \
-                            --run-name "$run_name" --dataset "$dataset"
-                    fi
-                done
-            done
-        done
+        evaluate_multiseed_outputs
         "$python_cmd" proposed/analyze_multiseed_results.py
+        ;;
+    train-catt-remaining-ablations)
+        train_remaining_ablations
+        ;;
+    evaluate-catt-remaining-ablations)
+        evaluate_remaining_ablations
+        ;;
+    run-catt-remaining-ablations)
+        run_remaining_ablations
+        ;;
+    verify-catt-causality)
+        verify_catt_causality
+        ;;
+    evaluate-catt-av-sync)
+        evaluate_catt_av_sync
+        ;;
+    remaining-experiments)
+        evaluate_multiseed_outputs
+        "$python_cmd" proposed/analyze_multiseed_results.py
+        "$python_cmd" proposed/smoke_student_architectures.py
+        run_remaining_ablations
+        verify_catt_causality
+        evaluate_catt_av_sync
+        "$python_cmd" proposed/summarize_remaining_experiments.py
         ;;
     help|*)
         cat <<'EOF'
@@ -226,6 +325,7 @@ Usage: bash run_catt_plan.sh COMMAND [--notify]
   train-catt-projected-cosine Train the projected-cosine candidate on AVA only.
   evaluate-catt-projected-cosine-ava Evaluate its selected checkpoint on AVA only.
   notify-test         Test optional Telegram start/success notifications.
+  smoke-catt-architectures Fast forward/backward test for all remaining model variants.
   smoke              One epoch, seed 42, CE+MSE; pipeline check only.
   single             Full 50-epoch proposed run, seed 42.
   single-ablation    Full 50-epoch CE-only run, seed 42.
@@ -234,6 +334,12 @@ Usage: bash run_catt_plan.sh COMMAND [--notify]
   evaluate-catt-multiseed Evaluate all selected and CE-only seed checkpoints on both datasets.
   summarize-catt-multiseed Aggregate completed runs and compute AVA-frozen Columbia F1.
   post-multiseed     Evaluate missing seed outputs, aggregate mean/std, and compute frozen-threshold F1.
+  train-catt-remaining-ablations Train no-buffer, no-cross-speaker, and non-causal seed-42 variants.
+  evaluate-catt-remaining-ablations Evaluate those three retrained variants on AVA and Columbia.
+  run-catt-remaining-ablations Train and immediately evaluate each remaining variant in priority order.
+  verify-catt-causality Run future-input perturbation tests on causal and non-causal heads.
+  evaluate-catt-av-sync Evaluate selected seeds under causal audio/video lag perturbations.
+  remaining-experiments Resume and complete all post-multi-seed CATT-ASD experiments above.
 
 Optional:
   --notify           Read .env and send Telegram start/success/failure messages.

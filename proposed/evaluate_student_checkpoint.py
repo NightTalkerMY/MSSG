@@ -111,7 +111,8 @@ def main():
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = CausalStudentASD().to(device)
+    architecture = training_manifest.get("architecture", "full")
+    model = CausalStudentASD(architecture=architecture).to(device)
     model.load_state_dict(torch.load(checkpoint, map_location=device))
     model.eval()
     warmup(model, device)
@@ -169,6 +170,7 @@ def main():
         "method": "CATT-ASD",
         "run_name": args.run_name,
         "variant": training_manifest["variant"],
+        "architecture": architecture,
         "seed": training_manifest["seed"],
         "dataset": args.dataset,
         "protocol": "audited 50-frame cache; final-position predictions only",

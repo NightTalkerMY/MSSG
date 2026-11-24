@@ -75,6 +75,12 @@ def evaluate_pair(name, ava_dir, columbia_dir):
         "columbia_macro_best_f1_percent": columbia_result[
             "columbia_six_speaker_macro_best_f1_percent"
         ],
+        "columbia_per_speaker_best_f1_percent": {
+            speaker: columbia_result["columbia_per_speaker"][speaker][
+                "best_f1_percent"
+            ]
+            for speaker in SPEAKERS
+        },
         "columbia_fixed_threshold_per_speaker_f1_percent": fixed_per_speaker,
         "columbia_fixed_threshold_macro_f1_percent": fixed_macro,
         "latency_mean_ms_per_window_ava": ava_result.get(
@@ -107,8 +113,15 @@ def summarize_group(records):
             [record["columbia_fixed_threshold_macro_f1_percent"] for record in records]
         ),
         "columbia_fixed_threshold_per_speaker_f1_percent": {},
+        "columbia_per_speaker_best_f1_percent": {},
     }
     for speaker in SPEAKERS:
+        summary["columbia_per_speaker_best_f1_percent"][speaker] = summarize(
+            [
+                record["columbia_per_speaker_best_f1_percent"][speaker]
+                for record in records
+            ]
+        )
         summary["columbia_fixed_threshold_per_speaker_f1_percent"][speaker] = summarize(
             [
                 record["columbia_fixed_threshold_per_speaker_f1_percent"][speaker]

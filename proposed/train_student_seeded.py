@@ -25,7 +25,7 @@ from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from torch.utils.data import DataLoader, IterableDataset
 from tqdm import tqdm
 
-from student_model import CausalStudentASD
+from student_model import ARCHITECTURES, CausalStudentASD
 
 
 class CacheDataset(IterableDataset):
@@ -79,6 +79,7 @@ def parse_args():
     parser.add_argument("--val-batch-size", type=int, default=32)
     parser.add_argument("--alpha", type=float, default=0.4,
                         help="CE weight for ce_mse; MSE weight is 1-alpha")
+    parser.add_argument("--architecture", choices=ARCHITECTURES, default="full")
     parser.add_argument("--train-cache", type=Path,
                         default=root / "realtime" / "cached_chunks")
     parser.add_argument("--val-cache", type=Path,
@@ -138,7 +139,7 @@ def main():
         CacheDataset(args.val_cache, "val", shuffle=False),
         batch_size=args.val_batch_size, num_workers=0,
     )
-    model = CausalStudentASD().to(device)
+    model = CausalStudentASD(architecture=args.architecture).to(device)
     criterion = StudentLoss(args.variant, args.alpha)
     optimizer = AdamW(model.parameters(), lr=1e-4, weight_decay=1e-4)
     scheduler = CosineAnnealingWarmRestarts(
@@ -192,6 +193,7 @@ def main():
     manifest = {
         "run_name": run_name,
         "variant": args.variant,
+        "architecture": args.architecture,
         "seed": args.seed,
         "epochs": args.epochs,
         "batch_size": args.batch_size,
