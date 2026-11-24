@@ -42,6 +42,12 @@ Every stage skips an existing completed output. The two required retrained
 component ablations run before the optional non-causal comparison, so an
 interrupted command retains the highest-priority evidence first.
 
+When the revision deadline does not permit the optional non-causal training,
+run `bash run_catt_plan.sh required-experiments --notify`. This completes the
+two explicitly requested retrained component ablations, causal future-input
+verification, and three-seed audio/video offset analysis, while omitting only
+the optional controlled non-causal training run.
+
 Prepare the held-out Columbia cache independently with:
 
 1. `bash run_catt_plan.sh download-columbia`

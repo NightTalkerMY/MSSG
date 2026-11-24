@@ -131,6 +131,27 @@ run_remaining_ablations() {
     done
 }
 
+run_required_ablations() {
+    for architecture in no_buffer no_cross_speaker; do
+        run_name="ce_mse_alpha_08_${architecture}_seed_42"
+        output="realtime/experiments/$run_name"
+        if [[ -f "$output/run_manifest.json" && -f "$output/best_ava.pt" ]]; then
+            echo "Completed run exists; skipping $run_name"
+        else
+            run_training ce_mse 42 50 "$run_name" 0.8 "$architecture"
+        fi
+        for dataset in ava columbia; do
+            result="realtime/catt_results/$run_name/$dataset/result.json"
+            if [[ -f "$result" ]]; then
+                echo "Completed result exists; skipping $run_name $dataset"
+            else
+                "$python_cmd" proposed/evaluate_student_checkpoint.py \
+                    --run-name "$run_name" --dataset "$dataset"
+            fi
+        done
+    done
+}
+
 verify_catt_causality() {
     for seed in 42 123 2026; do
         run_name="ce_mse_alpha_08_seed_${seed}"
@@ -150,6 +171,19 @@ verify_catt_causality() {
         "$python_cmd" proposed/verify_student_causality.py \
             --run-name "$run_name" --expect noncausal
     fi
+}
+
+verify_selected_catt_causality() {
+    for seed in 42 123 2026; do
+        run_name="ce_mse_alpha_08_seed_${seed}"
+        output="realtime/analysis/causality/${run_name}.json"
+        if [[ -f "$output" ]]; then
+            echo "Completed causality result exists; skipping $run_name"
+        else
+            "$python_cmd" proposed/verify_student_causality.py \
+                --run-name "$run_name" --expect causal
+        fi
+    done
 }
 
 evaluate_catt_av_sync() {
@@ -282,11 +316,24 @@ case "$command_name" in
     run-catt-remaining-ablations)
         run_remaining_ablations
         ;;
+    run-catt-required-ablations)
+        run_required_ablations
+        ;;
     verify-catt-causality)
         verify_catt_causality
         ;;
     evaluate-catt-av-sync)
         evaluate_catt_av_sync
+        ;;
+    required-experiments)
+        evaluate_multiseed_outputs
+        "$python_cmd" proposed/analyze_multiseed_results.py
+        "$python_cmd" proposed/smoke_student_architectures.py
+        run_required_ablations
+        verify_selected_catt_causality
+        evaluate_catt_av_sync
+        "$python_cmd" proposed/summarize_remaining_experiments.py \
+            --allow-missing-noncausal
         ;;
     remaining-experiments)
         evaluate_multiseed_outputs
@@ -337,8 +384,10 @@ Usage: bash run_catt_plan.sh COMMAND [--notify]
   train-catt-remaining-ablations Train no-buffer, no-cross-speaker, and non-causal seed-42 variants.
   evaluate-catt-remaining-ablations Evaluate those three retrained variants on AVA and Columbia.
   run-catt-remaining-ablations Train and immediately evaluate each remaining variant in priority order.
+  run-catt-required-ablations Train and evaluate only no-buffer and no-cross-speaker variants.
   verify-catt-causality Run future-input perturbation tests on causal and non-causal heads.
   evaluate-catt-av-sync Evaluate selected seeds under causal audio/video lag perturbations.
+  required-experiments Complete the time-critical reviewer requirements and skip non-causal training.
   remaining-experiments Resume and complete all post-multi-seed CATT-ASD experiments above.
 
 Optional:

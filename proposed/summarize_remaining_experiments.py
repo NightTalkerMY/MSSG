@@ -1,5 +1,6 @@
-"""Create one manifest for all post-multi-seed CATT-ASD experiments."""
+"""Create one manifest for all available post-multi-seed experiments."""
 
+import argparse
 import json
 from pathlib import Path
 
@@ -8,7 +9,8 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 SEEDS = (42, 123, 2026)
-ARCHITECTURES = ("no_buffer", "no_cross_speaker", "noncausal")
+REQUIRED_ARCHITECTURES = ("no_buffer", "no_cross_speaker")
+OPTIONAL_ARCHITECTURES = ("noncausal",)
 
 
 def load(path):
@@ -26,14 +28,25 @@ def stats(values):
     }
 
 
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--allow-missing-noncausal", action="store_true")
+    return parser.parse_args()
+
+
 def main():
+    args = parse_args()
     analysis_root = ROOT / "realtime" / "analysis"
     multiseed = load(analysis_root / "catt_multiseed" / "summary.json")
 
     ablations = {}
-    for architecture in ARCHITECTURES:
+    architectures = REQUIRED_ARCHITECTURES + OPTIONAL_ARCHITECTURES
+    for architecture in architectures:
         run_name = f"ce_mse_alpha_08_{architecture}_seed_42"
         run_root = ROOT / "realtime" / "catt_results" / run_name
+        if architecture in OPTIONAL_ARCHITECTURES and args.allow_missing_noncausal:
+            if not (run_root / "ava" / "result.json").is_file():
+                continue
         ava = load(run_root / "ava" / "result.json")
         columbia = load(run_root / "columbia" / "result.json")
         ablations[architecture] = {
@@ -57,9 +70,11 @@ def main():
             analysis_root / "causality" / f"{run_name}.json"
         )
     noncausal_name = "ce_mse_alpha_08_noncausal_seed_42"
-    causality[noncausal_name] = load(
-        analysis_root / "causality" / f"{noncausal_name}.json"
-    )
+    noncausal_path = analysis_root / "causality" / f"{noncausal_name}.json"
+    if noncausal_path.is_file():
+        causality[noncausal_name] = load(noncausal_path)
+    elif not args.allow_missing_noncausal:
+        raise SystemExit(f"Missing required result: {noncausal_path}")
 
     sync_runs = [
         load(
@@ -100,6 +115,7 @@ def main():
             "columbia_role": "held-out cross-dataset evaluation",
             "causality_test": "prediction head with respect to supplied features",
             "audio_video_offset_unit": "frames at 25 fps",
+            "noncausal_comparison_completed": "noncausal" in ablations,
         },
     }
     output_path = analysis_root / "catt_remaining_experiments_summary.json"
