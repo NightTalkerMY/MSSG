@@ -87,12 +87,18 @@ class CrossSpeakerAttention(nn.Module):
         return out
 
 
+ARCHITECTURES = ("full", "no_buffer", "no_cross_speaker", "noncausal")
+
+
 class CausalStudentASD(nn.Module):
     NUM_SCALES = 7
     SCALE_DIM = 128  # Each of the 7 visual scales is 128-dim in the cache
 
-    def __init__(self, hidden_dim=128, num_classes=2):
+    def __init__(self, hidden_dim=128, num_classes=2, architecture="full"):
         super(CausalStudentASD, self).__init__()
+        if architecture not in ARCHITECTURES:
+            raise ValueError(f"Unknown student architecture: {architecture}")
+        self.architecture = architecture
 
         # 1. Per-scale visual projections (preserves scale independence)
         self.scale_projs = nn.ModuleList([
@@ -125,8 +131,11 @@ class CausalStudentASD(nn.Module):
 
         # 5. Buffer Attention (Multihead with dropout)
         # This act as a "search mode", so it "amplifies" what seems to be lost in very past of GRU
-        self.mha = nn.MultiheadAttention(embed_dim=hidden_dim, num_heads=4,
-                                         batch_first=True, dropout=0.1)
+        self.mha = (
+            None if architecture == "no_buffer" else
+            nn.MultiheadAttention(embed_dim=hidden_dim, num_heads=4,
+                                  batch_first=True, dropout=0.1)
+        )
         self.temporal_norm = nn.LayerNorm(hidden_dim)
 
         # 6. Gated FFN — mimics teacher's backward GRU gated feedforward transform
@@ -138,7 +147,10 @@ class CausalStudentASD(nn.Module):
         self.ffn_norm = nn.LayerNorm(hidden_dim)
 
         # 7. Cross-Speaker Attention (replaces CausalGraphNet)
-        self.cross_speaker = CrossSpeakerAttention(hidden_dim, num_heads=4, dropout=0.1)
+        self.cross_speaker = (
+            None if architecture == "no_cross_speaker" else
+            CrossSpeakerAttention(hidden_dim, num_heads=4, dropout=0.1)
+        )
 
         # 8. The Final Classifier (with dropout)
         self.feat_dropout = nn.Dropout(0.1)
@@ -171,11 +183,26 @@ class CausalStudentASD(nn.Module):
         D = x.shape[-1]
         x_seq = x.view(B * S, T, D)
         gru_out, _ = self.gru(x_seq)  # [B*S, T, 128]
+        if self.architecture == "noncausal":
+            # Parameter-controlled non-causal comparison: reuse the same GRU
+            # weights in reverse temporal order and average both directions.
+            reverse_out, _ = self.gru(torch.flip(x_seq, dims=(1,)))
+            reverse_out = torch.flip(reverse_out, dims=(1,))
+            gru_out = 0.5 * (gru_out + reverse_out)
 
         # Step 5: Buffer Attention with Strict Causal Mask
-        causal_mask = torch.triu(torch.ones(T, T, device=v.device) * float('-inf'), diagonal=1)
-        attn_out, _ = self.mha(gru_out, gru_out, gru_out, attn_mask=causal_mask)
-        seq_features = self.temporal_norm(gru_out + attn_out)
+        if self.mha is None:
+            seq_features = self.temporal_norm(gru_out)
+        else:
+            causal_mask = None
+            if self.architecture != "noncausal":
+                causal_mask = torch.triu(
+                    torch.ones(T, T, device=v.device) * float('-inf'), diagonal=1
+                )
+            attn_out, _ = self.mha(
+                gru_out, gru_out, gru_out, attn_mask=causal_mask
+            )
+            seq_features = self.temporal_norm(gru_out + attn_out)
 
         # Step 6: Gated FFN — backward GRU equivalent
         gate = torch.sigmoid(self.gate_proj(seq_features))
@@ -189,7 +216,10 @@ class CausalStudentASD(nn.Module):
         seq_features = seq_features * mask.unsqueeze(-1)
 
         # Step 7: Cross-Speaker Attention (replaces graph)
-        graph_features = self.cross_speaker(seq_features, mask)
+        graph_features = (
+            seq_features if self.cross_speaker is None else
+            self.cross_speaker(seq_features, mask)
+        )
 
         # Step 8: Classification
         logits = self.classifier(self.feat_dropout(graph_features))  # [B, S, T, 2]
