@@ -12,16 +12,9 @@ colDataPath/
 cached_chunks/
 val_cached_chunks/
 columbia_cached_chunks/
-realtime_epoch_mse_ce/
-realtime_epoch_mse_ce_kl/
-realtime/cached_chunks/
-realtime/val_cached_chunks/
 realtime/columbia_cached_chunks/
 # Baseline result JSON/CSV files are intentionally retained as revision
 # evidence. Evaluators write only compact metrics and prediction tables here.
-
-# Realtime directory 
-test_video/
 
 # Ignore everything inside predata, EXCEPT pretrain_model
 predata
