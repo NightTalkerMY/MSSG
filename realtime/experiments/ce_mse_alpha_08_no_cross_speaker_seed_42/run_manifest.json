@@ -1,0 +1,21 @@
+{
+  "run_name": "ce_mse_alpha_08_no_cross_speaker_seed_42",
+  "variant": "ce_mse",
+  "architecture": "no_cross_speaker",
+  "seed": 42,
+  "epochs": 50,
+  "batch_size": 16,
+  "validation_batch_size": 32,
+  "ce_weight": 0.8,
+  "mse_weight": 0.19999999999999996,
+  "checkpoint_selection": "highest AVA final-frame validation mAP only",
+  "columbia_used_during_training_or_selection": false,
+  "best_epoch": 26,
+  "best_ava_final_frame_map": 93.12832715206899,
+  "device": "cuda",
+  "torch_version": "2.1.2+cu121",
+  "cuda_version": "12.1",
+  "elapsed_seconds": 6614.591866016388,
+  "train_cache": "D:\\New folder\\MSSG\\realtime\\cached_chunks",
+  "val_cache": "D:\\New folder\\MSSG\\realtime\\val_cached_chunks"
+}

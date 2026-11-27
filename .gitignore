@@ -14,7 +14,6 @@ val_cached_chunks/
 columbia_cached_chunks/
 realtime_epoch_mse_ce/
 realtime_epoch_mse_ce_kl/
-realtime/experiments/
 realtime/cached_chunks/
 realtime/val_cached_chunks/
 realtime/columbia_cached_chunks/

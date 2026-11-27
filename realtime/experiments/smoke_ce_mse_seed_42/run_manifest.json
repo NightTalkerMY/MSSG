@@ -1,0 +1,20 @@
+{
+  "run_name": "smoke_ce_mse_seed_42",
+  "variant": "ce_mse",
+  "seed": 42,
+  "epochs": 1,
+  "batch_size": 16,
+  "validation_batch_size": 32,
+  "ce_weight": 0.4,
+  "mse_weight": 0.6,
+  "checkpoint_selection": "highest AVA final-frame validation mAP only",
+  "columbia_used_during_training_or_selection": false,
+  "best_epoch": 1,
+  "best_ava_final_frame_map": 92.02117967905515,
+  "device": "cuda",
+  "torch_version": "2.1.2+cu121",
+  "cuda_version": "12.1",
+  "elapsed_seconds": 122.55382752418518,
+  "train_cache": "D:\\New folder\\MSSG\\realtime\\cached_chunks",
+  "val_cache": "D:\\New folder\\MSSG\\realtime\\val_cached_chunks"
+}

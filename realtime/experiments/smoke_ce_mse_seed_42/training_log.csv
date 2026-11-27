@@ -1,0 +1,2 @@
+epoch,avg_loss,avg_ce,avg_mse,lr,ava_final_frame_map,val_samples,epoch_seconds
+1,0.30143140,0.33954336,0.27602340,0.00009758,92.021180,28549,122.530
